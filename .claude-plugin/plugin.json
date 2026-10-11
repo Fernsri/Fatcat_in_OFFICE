@@ -1,0 +1,65 @@
+{
+  "name": "agent-stage",
+  "version": "0.5.0",
+  "description": "Agents Office: a card per agent with an animated pixel figure for its role (Team Lead, Planner, Coder, Tester, Reviewer, Researcher, Designer) as robots or a space crew, plus a progress bar above the prompt",
+  "author": {
+    "name": "Saharat"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "theme": {
+      "type": "string",
+      "title": "Theme",
+      "description": "Palette for the header and the progress bar",
+      "default": "neon",
+      "options": [
+        "neon",
+        "ocean",
+        "sunset",
+        "mono"
+      ]
+    },
+    "skin": {
+      "type": "string",
+      "title": "Figures",
+      "description": "robots: the pixel robots. space-crew: a different spacefarer per role (Commander, Navigator, Engineer, Test pilot, Inspector, Astronomer, Star artist).",
+      "default": "space-crew",
+      "options": [
+        "robots",
+        "space-crew"
+      ]
+    },
+    "robotSize": {
+      "type": "string",
+      "title": "Figure size in the terminal",
+      "description": "bust: head and speech bubble (28 x 9 cells). full: the whole figure (32 x 16 cells). The desktop always shows the whole figure.",
+      "default": "bust",
+      "options": [
+        "bust",
+        "full"
+      ]
+    },
+    "backdrop": {
+      "type": "string",
+      "title": "Figure backdrop in the terminal",
+      "description": "skin: the figures' own backdrop (beige for robots, deep space for the crew). terminal: your terminal's own background.",
+      "default": "skin",
+      "options": [
+        "skin",
+        "terminal"
+      ]
+    },
+    "fps": {
+      "type": "number",
+      "title": "Frames per second",
+      "description": "How often the terminal repaints the progress bar (4-30). Figures step at their own pace.",
+      "default": 12
+    },
+    "autoOpenPane": {
+      "type": "boolean",
+      "title": "Open the pane on start",
+      "description": "Open the Agents Office by itself when the session starts (needs a wide terminal); /stage always opens it",
+      "default": true
+    }
+  }
+}

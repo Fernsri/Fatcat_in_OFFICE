@@ -1,0 +1,6 @@
+{
+  "name": "saharat-mods",
+  "owner": { "name": "Saharat" },
+  "description": "Saharat's Claude Code mods: agent-stage, the Agents Office with pixel robots and a space crew",
+  "plugins": [{ "name": "agent-stage", "source": "./" }]
+}
