@@ -4,8 +4,9 @@ import type { StageRun } from '../types'
 import { progressOf } from './progress'
 import { startTurn } from './run'
 import { buildCards, visibleSig } from './cards'
+import { cardRows, fitPane } from './fit'
 import { addUsed, cleanTask, describeCall, mcpParts, safeText, usedLine, usedOf } from './activity'
-import { BUST, FRAMES, FULL, ROLES, poseOf, robotGrid, robotSvg, roleOf } from './robots'
+import { BUST, FRAMES, FULL, HEAD, MINI, ROLES, cropCells, poseOf, robotGrid, robotSvg, roleOf } from './robots'
 import type { Pose, Role } from './robots'
 import { astroGrid } from './astronauts'
 import { THEMES, barFrame, figureStillSvg, figureSvg, robotCells, stageAgents } from './stage'
@@ -58,6 +59,12 @@ test('every space crew role and pose draws a full grid, and its SVG fits the Svg
 test('terminal cells fill exactly the crop, bust and full', async () => {
   expect(robotCells('tester', 'walk', 3, BUST).length).toBe(b64Len(BUST.w * (BUST.h >> 1)))
   expect(robotCells('designer', 'done', 5, FULL, true).length).toBe(b64Len(FULL.w * (FULL.h >> 1)))
+  expect(cropCells(HEAD)).toEqual({ columns: 28, rows: 8 })
+  expect(cropCells(MINI)).toEqual({ columns: 14, rows: 5 })
+  for (const skin of ['robots', 'space-crew'] as const) {
+    expect(robotCells('coder', 'think', 1, HEAD, false, skin).length).toBe(b64Len(28 * 8))
+    expect(robotCells('coder', 'think', 1, MINI, false, skin).length).toBe(b64Len(14 * 5))
+  }
 })
 
 test('the desktop SVG of every role and pose fits the Svg element limit', async () => {
@@ -239,4 +246,49 @@ test('a spawned subagent and the plan show on the pane and the band', async ($, 
     expect(await band.find({ type: 'Text', text: /1 agent/ })).toBeDefined()
     await band.unmount()
   }
+})
+
+test('the terminal pane picks the biggest figure that fits, and keeps a small one rather than none', async () => {
+  // header + 3 cards: full figures need 3*19, the bust 3*12, the head 3*10, half size 3*7
+  expect(fitPane(3, 80, 100, FULL)).toEqual({ figure: FULL, labelBelow: true })
+  expect(fitPane(3, 40, 100, FULL)).toEqual({ figure: BUST, labelBelow: true })
+  expect(fitPane(3, 40, 100, BUST)).toEqual({ figure: BUST, labelBelow: true })
+  expect(fitPane(3, 31, 100, BUST)).toEqual({ figure: HEAD, labelBelow: false })
+  expect(fitPane(4, 37, 100, BUST)).toEqual({ figure: MINI, labelBelow: false })
+  expect(fitPane(7, 22, 75, BUST)).toEqual({ figure: MINI, labelBelow: false }) // too many to fit: small figures, and it scrolls
+  expect(fitPane(3, 40, 40, BUST)).toEqual({ figure: MINI, labelBelow: false }) // too narrow for a big figure, not a small one
+  expect(fitPane(3, 40, 30, BUST)).toEqual({ figure: null, labelBelow: false }) // too narrow for any figure
+  for (let rows = 2; rows <= 90; rows++) {
+    for (let agents = 1; agents <= 7; agents++) {
+      const fit = fitPane(agents, rows, 120, FULL)
+      expect(fit.figure).toBeDefined()
+      if (fit.figure !== MINI) expect(1 + agents * cardRows(fit.figure) <= rows).toBe(true) // anything bigger fits whole
+    }
+  }
+})
+
+test('a short terminal gets smaller figures, never cards without them', async ($, on) => {
+  mock.clock(on, { now: 1_000 })
+  on('agent.spawn', async () => ({ model: 'claude-opus-5-5', agentId: 'sub-2' }))
+  await $.agent.spawn({
+    prompt: 'look around', description: 'test the build', subagentType: 'general-purpose', tool_use_id: 'toolu_2',
+    provider: { plugin: 'engine', tier: 'core' }, parentModel: 'claude-opus-5-5', background: false, fork: false,
+  })
+  const mount = (bodyRows: number, bodyColumns = 80) => $.ui.mount({
+    plugin: 'agent-stage', surface: 'terminal', component: 'Pane', requestId: 'agent-stage',
+    props: { title: 'Agents Office', isFocused: false, bodyColumns, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
+  })
+
+  for (const rows of [30, 16, 5]) {
+    const pane = await mount(rows)
+    expect(await pane.findAll({ type: 'Raster' })).toHaveLength(2)
+    expect(await pane.find({ type: 'Text', text: /Tester/ })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: /Task 1: test the build/ })).toBeDefined()
+    await pane.unmount()
+  }
+
+  const narrow = await mount(30, 30)
+  expect(await narrow.findAll({ type: 'Raster' })).toHaveLength(0)
+  expect(await narrow.find({ type: 'Text', text: /Tester/ })).toBeDefined()
+  await narrow.unmount()
 })

@@ -296,10 +296,43 @@ export function robotGrid(role: Role, pose: Pose, frame: number): (string | null
   }))
 }
 
-/** The rows and columns a sprite occupies: the whole robot, or head and bubble only. */
-export type Crop = { x: number; y: number; w: number; h: number }
+/**
+ * The part of a sprite drawn, in sprite pixels: the whole figure, head and
+ * bubble only, and so on. `half` draws it at half size, each 2 x 2 pixels one.
+ */
+export type Crop = { x: number; y: number; w: number; h: number; half?: boolean }
 export const FULL: Crop = { x: 0, y: 0, w: 32, h: 32 }
 export const BUST: Crop = { x: 4, y: 0, w: 28, h: 18 }
+/** For a short terminal: the head alone, then head and shoulders at half size. */
+export const HEAD: Crop = { x: 4, y: 0, w: 28, h: 16 }
+export const MINI: Crop = { x: 4, y: 0, w: 28, h: 20, half: true }
+
+/** The terminal cells a crop takes, two pixel rows per cell. */
+export const cropCells = (c: Crop) => ({ columns: c.half ? c.w >> 1 : c.w, rows: (c.half ? c.h >> 1 : c.h) >> 1 })
+
+/**
+ * A sprite at half size: each 2 x 2 block becomes its most common colour, an
+ * empty pixel losing a tie, so thin outlines and eyes survive the shrink.
+ */
+export function halfGrid(grid: (string | null)[][]): (string | null)[][] {
+  const out: (string | null)[][] = []
+  for (let y = 0; y < grid.length; y += 2) {
+    const row: (string | null)[] = []
+    for (let x = 0; x < (grid[y]?.length ?? 0); x += 2) {
+      const votes = new Map<string | null, number>()
+      for (const c of [grid[y]?.[x], grid[y]?.[x + 1], grid[y + 1]?.[x], grid[y + 1]?.[x + 1]]) {
+        const k = c ?? null
+        votes.set(k, (votes.get(k) ?? 0) + (k ? 1 : 0.9))
+      }
+      let best: string | null = null
+      let most = -1
+      for (const [k, n] of votes) if (n > most) [best, most] = [k, n]
+      row.push(best)
+    }
+    out.push(row)
+  }
+  return out
+}
 
 /**
  * An animated SVG of one role and pose: a static backdrop plus FRAMES groups,

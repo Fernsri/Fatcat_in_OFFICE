@@ -4,7 +4,7 @@
 
 import type { StageAgent, StageRun } from '../types'
 import { astroGrid, astroSvg, LOOKS, SPACE } from './astronauts'
-import { BACKDROP, ROLES, robotGrid, robotSvg } from './robots'
+import { BACKDROP, cropCells, halfGrid, ROLES, robotGrid, robotSvg } from './robots'
 import type { Crop, Pose, Role } from './robots'
 
 /** The two looks a figure can have: the pixel robots or the space crew. */
@@ -128,15 +128,19 @@ const toNum = (c: string | null, backdrop: number) => (c ? parseInt(c.slice(1), 
  * (beige for the robots, deep space for the crew).
  */
 export function robotCells(role: Role, pose: Pose, frame: number, crop: Crop, transparent = false, skin: Skin = 'robots'): string {
-  const grid = skin === 'space-crew' ? astroGrid(role, pose, frame) : robotGrid(role, pose, frame)
+  const full = skin === 'space-crew' ? astroGrid(role, pose, frame) : robotGrid(role, pose, frame)
+  const grid = crop.half ? halfGrid(full) : full
+  const s = crop.half ? 2 : 1
   const back = transparent ? NONE : parseInt((skin === 'space-crew' ? SPACE : BACKDROP).slice(1), 16)
-  const rows = crop.h >> 1
-  const words = new Uint32Array(crop.w * rows * 3)
+  const { columns, rows } = cropCells(crop)
+  const x0 = crop.x / s
+  const y0 = crop.y / s
+  const words = new Uint32Array(columns * rows * 3)
   for (let r = 0; r < rows; r++) {
-    for (let x = 0; x < crop.w; x++) {
-      const top = toNum(grid[crop.y + r * 2]?.[crop.x + x] ?? null, back)
-      const bot = toNum(grid[crop.y + r * 2 + 1]?.[crop.x + x] ?? null, back)
-      const i = (r * crop.w + x) * 3
+    for (let x = 0; x < columns; x++) {
+      const top = toNum(grid[y0 + r * 2]?.[x0 + x] ?? null, back)
+      const bot = toNum(grid[y0 + r * 2 + 1]?.[x0 + x] ?? null, back)
+      const i = (r * columns + x) * 3
       if (top === NONE && bot === NONE) words.set([0x20, NONE, NONE], i)
       else if (bot === NONE) words.set([0x2580, top, NONE], i)
       else if (top === NONE) words.set([0x2584, bot, NONE], i)

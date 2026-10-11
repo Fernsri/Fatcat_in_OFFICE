@@ -1,6 +1,6 @@
 {
   "name": "agent-stage",
-  "version": "0.5.1",
+  "version": "0.5.4",
   "description": "Agents Office: a card per agent with an animated pixel figure for its role (Team Lead, Planner, Coder, Tester, Reviewer, Researcher, Designer) as robots or a space crew, plus a progress bar above the prompt",
   "author": {
     "name": "Saharat"

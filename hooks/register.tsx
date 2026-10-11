@@ -4,8 +4,9 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { StageAgent, StageRun, StageTask } from '../types'
 import { addUsed, describeCall, safeText, usedOf } from './activity'
 import { bandLabel, buildCards, robotOf, visibleSig } from './cards'
+import { fitPane } from './fit'
 import { progressOf } from './progress'
-import { BUST, FRAME_MS, FRAMES, FULL, ROLES } from './robots'
+import { BUST, cropCells, FRAME_MS, FRAMES, FULL, ROLES } from './robots'
 import type { Crop, Pose } from './robots'
 import { startTurn } from './run'
 import { barFrame, barSvg, figureName, figureStillSvg, figureSvg, robotCells, skinNamed, themeNamed, THEMES } from './stage'
@@ -52,7 +53,7 @@ let lastRedrawAt = -Infinity
 let drawnSig = '' // what the pane and band last showed
 let lastFrame = -1
 let timer: { cancel: () => void } | null = null
-let pane: { keys: string[] } | null = null // terminal cards whose figures are painted per frame
+let pane: { keys: string[]; crop: Crop } | null = null // terminal cards whose figures are painted per frame, and their size
 let band: { requestId: string; columns: number } | null = null // the terminal bar, painted per frame
 let peak = { turn: -1, p: 0 } // the highest progress shown this turn
 
@@ -109,8 +110,8 @@ function paint($: EngineInterface) {
     lastFrame = frame
     for (const key of pane?.keys ?? []) {
       const who = robotOf(snap, key, nowMs)
-      if (!who) continue
-      const cells = robotCells(who.role, who.pose, frame, crop, transparent, skin)
+      if (!who || !pane) continue
+      const cells = robotCells(who.role, who.pose, frame, pane.crop, transparent, skin)
       void $.ui.blit({ requestId: PANE, key: `bot-${key}`, cells }).then(r => {
         if (r.deny) pane = null // closed or redrawn: the next render re-seats it
       })
@@ -280,28 +281,42 @@ export const register: Register = (on, options) => {
     const cards = buildCards(r, now, e.surface === 'terminal', theme)
 
     if (e.surface === 'terminal') {
+      // Figures sized to the room the terminal gives the pane: the biggest
+      // that fits every card, down to half size; past that the pane scrolls.
       const { Box, Text, Raster } = $.ui.resolve(e)
       const frame = frameAt(t)
-      pane = { keys: cards.map(c => c.key) }
+      const fit = fitPane(cards.length, e.props.scroll.bodyRows, e.props.bodyColumns, crop)
+      const figure = fit.figure
+      const art = figure ? cropCells(figure) : null
+      pane = figure ? { keys: cards.map(c => c.key), crop: figure } : null
       if (isLive(r)) ensureLoop($)
       return (
         <Box flexDirection="column">
-          <Text bold color={hex(theme.main)}>Agents Office</Text>
+          <Text bold color={hex(theme.main)} wrap="truncate-end">Agents Office</Text>
           {cards.map(card => {
             const role = ROLES[card.robot.role]
             return (
               <Box key={card.key} flexDirection="row" borderStyle="round" borderColor={card.live ? role.color : undefined} gap={1}>
-                <Box flexDirection="column" alignItems="center" flexShrink={0}>
-                  <Raster
-                    key={`bot-${card.key}`}
-                    columns={crop.w}
-                    rows={crop.h >> 1}
-                    cells={robotCells(card.robot.role, card.robot.pose, frame, crop, transparent, skin)}
-                  />
-                  <Text bold color={role.color} wrap="truncate-end">{role.label}</Text>
-                </Box>
+                {figure && art ? (
+                  <Box flexDirection="column" alignItems="center" flexShrink={0}>
+                    <Raster
+                      key={`bot-${card.key}`}
+                      columns={art.columns}
+                      rows={art.rows}
+                      cells={robotCells(card.robot.role, card.robot.pose, frame, figure, transparent, skin)}
+                    />
+                    {fit.labelBelow ? <Text bold color={role.color} wrap="truncate-end">{role.label}</Text> : null}
+                  </Box>
+                ) : null}
                 <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} paddingX={1}>
-                  <Text bold wrap="truncate-end">{card.title}</Text>
+                  {fit.labelBelow ? (
+                    <Text bold wrap="truncate-end">{card.title}</Text>
+                  ) : (
+                    <Box flexDirection="row" gap={1}>
+                      <Box flexShrink={0}><Text bold color={role.color}>{role.label}</Text></Box>
+                      <Box flexGrow={1} flexShrink={1} minWidth={0}><Text bold wrap="truncate-end">{card.title}</Text></Box>
+                    </Box>
+                  )}
                   <Text color={card.statusColor} wrap="truncate-end">{card.status}</Text>
                   <Text wrap="truncate-end">{card.doing}</Text>
                   <Text dimColor wrap="truncate-end">{card.used}</Text>

@@ -25,6 +25,7 @@ app's Code tab.
   | Designer | Star artist, paint-splat suit | beret, paintbrush |
 
   Figures walk while working, think after a quiet spell, cheer when done and slump on failure.
+- **Sized to the terminal.** The figures shrink to fit every card on screen: your chosen size, then the bust, the head only, then half size. With more agents than that fits, the cards keep their small figures and the pane scrolls.
 - **A progress bar** above the prompt: done tasks over all tasks when Claude keeps a plan, else finished subagents over all, else an estimate from tool calls. It only moves forward during a turn and holds at 95% until the turn is done.
 
 ## Install
