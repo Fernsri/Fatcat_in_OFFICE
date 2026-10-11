@@ -32,7 +32,7 @@ app's Code tab.
 In a terminal Claude Code session:
 
 ```
-/plugin install agent-stage --marketplace <owner>/agent-stage
+/plugin install agent-stage --marketplace Saharatjj/agent-stage
 ```
 
 Answer `y` to add the marketplace, then choose the user scope. Installed at the
