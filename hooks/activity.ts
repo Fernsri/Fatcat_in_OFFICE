@@ -4,12 +4,30 @@ import type { Used, UsedKind } from '../types'
 
 const MAX_USED = 16
 
-const base = (p: unknown) => (typeof p === 'string' ? p.split(/[\\/]/).filter(Boolean).pop() ?? p : '')
+/**
+ * Text from outside the mod (commands, file names, prompts, tool and skill
+ * names) made safe to draw: escape sequences, control characters and
+ * direction overrides removed, whitespace collapsed to single spaces.
+ */
+export function safeText(text: unknown): string {
+  if (typeof text !== 'string') return ''
+  return text
+    .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '') // CSI sequences: colors, cursor moves
+    .replace(/\u001b\][^\u0007\u001b]*(\u0007|\u001b\\)?/g, '') // OSC sequences: titles, links
+    .replace(/[\u0000-\u001f\u007f-\u009f‎‏‪-‮⁦-⁩]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const base = (p: unknown) => {
+  const s = safeText(p)
+  return s.split(/[\\/]/).filter(Boolean).pop() ?? s
+}
 const cut = (text: unknown, n: number) => {
-  const s = typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : ''
+  const s = safeText(text)
   return s.length > n ? s.slice(0, n - 1) + '…' : s
 }
-const words = (name: string) => name.replace(/[_-]+/g, ' ').trim()
+const words = (name: string) => safeText(name.replace(/[_-]+/g, ' '))
 
 /** An MCP tool's server and tool, read off its wire name `mcp__<server>__<tool>`. */
 export function mcpParts(tool: string): { server: string; name: string } | null {
@@ -26,10 +44,10 @@ export function mcpParts(tool: string): { server: string; name: string } | null 
 
 /** What one tool call counts as on a card: a tool, an MCP server, or a skill. */
 export function usedOf(tool: string, input: Record<string, unknown>): { name: string; kind: UsedKind } {
-  if (tool === 'Skill' && typeof input.skill === 'string') return { name: input.skill, kind: 'skill' }
+  if (tool === 'Skill' && typeof input.skill === 'string') return { name: cut(input.skill, 40), kind: 'skill' }
   const mcp = mcpParts(tool)
   if (mcp) return { name: mcp.server, kind: 'mcp' }
-  return { name: tool, kind: 'tool' }
+  return { name: cut(tool, 40), kind: 'tool' }
 }
 
 /** The list with one more use of `item`, most used first, at most MAX_USED names. */
@@ -72,7 +90,7 @@ export function describeCall(tool: string, input: Record<string, unknown>): stri
       return `Fetching ${url.replace(/^https?:\/\//, '').split('/')[0] ?? url}`
     }
     case 'WebSearch': return `Searching the web for "${cut(input.query, 40)}"`
-    case 'Skill': return `Using the ${String(input.skill ?? '')} skill`
+    case 'Skill': return `Using the ${cut(input.skill, 40)} skill`
     case 'Agent':
     case 'Task': return `Delegating: ${cut(input.description, 50)}`
     case 'TodoWrite':
@@ -81,7 +99,7 @@ export function describeCall(tool: string, input: Record<string, unknown>): stri
   }
   const mcp = mcpParts(tool)
   if (mcp) return `Using ${mcp.server}: ${mcp.name}`
-  return `Using ${tool}`
+  return `Using ${cut(tool, 40)}`
 }
 
 const INJECTED = 'agent-message|task-notification|system-reminder|command-name|command-message|command-args|local-command-stdout'
@@ -95,7 +113,7 @@ const INJECTED_OPEN = new RegExp(`^<(${INJECTED})\\b`)
  * (say "<Button> won't render") is theirs and stays.
  */
 export function cleanTask(text: string): string | null {
-  const s = text.replace(INJECTED_BLOCK, ' ').trim()
+  const s = safeText(text.replace(INJECTED_BLOCK, ' '))
   if (!s) return null
   if (INJECTED_OPEN.test(s)) return null // an injected block that never closed
   if (/^\[(SYSTEM NOTIFICATION|Subagent hand-back)/i.test(s)) return null

@@ -4,7 +4,7 @@ import type { StageRun } from '../types'
 import { progressOf } from './progress'
 import { startTurn } from './run'
 import { buildCards, visibleSig } from './cards'
-import { addUsed, cleanTask, describeCall, mcpParts, usedLine, usedOf } from './activity'
+import { addUsed, cleanTask, describeCall, mcpParts, safeText, usedLine, usedOf } from './activity'
 import { BUST, FRAMES, FULL, ROLES, poseOf, robotGrid, robotSvg, roleOf } from './robots'
 import type { Pose, Role } from './robots'
 import { astroGrid } from './astronauts'
@@ -109,6 +109,15 @@ test('cards summarize: what an agent does, and the tools, MCP servers and skills
   used = addUsed(used, usedOf('Skill', { skill: 'pdf' }))
   expect(usedLine(used)).toBe('Tools Read ×2, Grep · MCP playwright · Skills pdf')
   expect(usedLine([])).toBe('')
+})
+
+test('text from outside the mod cannot carry terminal escapes onto a card', async () => {
+  const esc = String.fromCharCode(27)
+  expect(safeText(`npm test${esc}[2J${esc}[31mred${esc}]0;title${String.fromCharCode(7)}`)).toBe('npm testred')
+  expect(safeText(`a${String.fromCharCode(8)}b‮c`)).toBe('a b c')
+  expect(describeCall('Bash', { command: `rm x${esc}[2K` })).toBe('Running rm x')
+  expect(describeCall('Skill', { skill: `pdf${esc}[5m` })).toBe('Using the pdf skill')
+  expect(cleanTask(`Fix it${esc}[2J`)).toBe('Fix it')
 })
 
 test('injected messages never become the request shown on the lead card', async () => {

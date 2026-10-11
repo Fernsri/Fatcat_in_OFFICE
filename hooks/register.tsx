@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { StageAgent, StageRun, StageTask } from '../types'
-import { addUsed, describeCall, usedOf } from './activity'
+import { addUsed, describeCall, safeText, usedOf } from './activity'
 import { bandLabel, buildCards, robotOf, visibleSig } from './cards'
 import { progressOf } from './progress'
 import { BUST, FRAME_MS, FRAMES, FULL, ROLES } from './robots'
@@ -29,7 +29,6 @@ const REDRAW_MS = 1500
 const hex = (c: number) => '#' + c.toString(16).padStart(6, '0')
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 const isLive = (r: StageRun) => r.isWorking || r.agents.some(a => a.status === 'running')
-const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim()
 const frameAt = (seconds: number) => Math.floor((seconds * 1000) / FRAME_MS) % FRAMES
 const animated = (pose: Pose) => pose === 'walk' || pose === 'think'
 const POSE_WORDS: Record<Pose, string> = { walk: 'at work', think: 'thinking', done: 'cheering, done', fail: 'stopped by an error', idle: 'waiting' }
@@ -82,9 +81,10 @@ function setAgent($: EngineInterface, id: string, fn: (a: StageAgent) => StageAg
  * $.state when it changed (the write redraws the readers), else redraws only
  * if what is shown has changed by itself (a figure starting to think).
  * `force` writes now, as the loop stops, so nothing is left unsaved.
+ * Says whether it redrew.
  */
-function refresh($: EngineInterface, force = false) {
-  if (!force && nowMs - lastRedrawAt < REDRAW_MS) return
+function refresh($: EngineInterface, force = false): boolean {
+  if (!force && nowMs - lastRedrawAt < REDRAW_MS) return false
   const sig = visibleSig(snap, nowMs, shownProgress(snap), theme)
   if (dirty && (force || sig !== drawnSig)) {
     dirty = false
@@ -92,11 +92,15 @@ function refresh($: EngineInterface, force = false) {
     drawnSig = sig
     const run = snap
     void update($, runAtom, () => run)
-  } else if (sig !== drawnSig) {
+    return true
+  }
+  if (sig !== drawnSig) {
     lastRedrawAt = nowMs
     drawnSig = sig
     $.ui.invalidate('ui.render')
+    return true
   }
+  return false
 }
 
 function paint($: EngineInterface) {
@@ -137,8 +141,7 @@ function ensureLoop($: EngineInterface) {
     if (idleTicks > fps * 3) {
       timer?.cancel()
       timer = null
-      refresh($, true)
-      $.ui.invalidate('ui.render')
+      if (!refresh($, true)) $.ui.invalidate('ui.render') // one last redraw, never two
     }
   })
 }
@@ -192,9 +195,9 @@ export const register: Register = (on, options) => {
       nowMs = now
       const agent: StageAgent = {
         id: started.agentId,
-        label: e.description || e.subagentType,
-        prompt: oneLine(e.prompt).slice(0, 400),
-        type: e.subagentType,
+        label: safeText(e.description || e.subagentType).slice(0, 120),
+        prompt: safeText(e.prompt).slice(0, 400),
+        type: safeText(e.subagentType).slice(0, 80),
         status: 'running',
         activity: 'starting',
         startedAt: now,
