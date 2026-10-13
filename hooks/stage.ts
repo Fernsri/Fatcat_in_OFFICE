@@ -152,12 +152,15 @@ export function robotCells(role: Role, pose: Pose, frame: number, crop: Crop, tr
 
 // ── the progress bar ───────────────────────────────────────────────────────────
 
-const EIGHTHS = [0x258f, 0x258e, 0x258d, 0x258c, 0x258b, 0x258a, 0x2589] // ▏▎▍▌▋▊▉
+const FILL = 0x2501 // ━
+const HALF = 0x2578 // ╸, the left half of a ━
+const EMPTY = 0x2500 // ─
 
 /**
- * One row of `columns` cells. `p` in 0..1 fills a gradient bar with a smooth
- * sub-cell edge and a shimmer sweeping across it; `p === null` is the
- * indeterminate form, a glowing segment bouncing end to end.
+ * One row of `columns` cells, the slim bar the usage meter draws: `p` in 0..1
+ * fills a ━ line in the theme's gradient with a half-cell edge and a shimmer
+ * sweeping across it; `p === null` is the indeterminate form, a glowing
+ * segment bouncing end to end.
  */
 export function barFrame(p: number | null, t: number, columns: number, theme: Theme): string {
   const W = Math.max(1, columns)
@@ -172,7 +175,7 @@ export function barFrame(p: number | null, t: number, columns: number, theme: Th
       const inSeg = x >= start && x < start + seg
       const k = inSeg ? 1 - Math.abs((x - start) / seg - 0.5) * 1.2 : 0
       const fg = inSeg ? mix(mix(theme.barFrom, theme.barTo, (x - start) / seg), 0xffffff, k * 0.3) : theme.barEmpty
-      words.set([inSeg ? 0x2588 : 0x2500, fg, NONE], x * 3)
+      words.set([inSeg ? FILL : EMPTY, fg, NONE], x * 3)
     }
     return pack(words)
   }
@@ -183,21 +186,49 @@ export function barFrame(p: number | null, t: number, columns: number, theme: Th
   for (let x = 0; x < W; x++) {
     const grad = mix(theme.barFrom, theme.barTo, W > 1 ? x / (W - 1) : 1)
     const lit = mix(grad, 0xffffff, glowAt(x))
-    if (x < full) words.set([0x2588, lit, NONE], x * 3)
-    else if (x === full && rem >= 1 / 8) words.set([EIGHTHS[Math.min(6, Math.floor(rem * 8) - 1)] ?? 0x2588, lit, NONE], x * 3)
-    else words.set([0x2500, theme.barEmpty, NONE], x * 3)
+    if (x < full) words.set([FILL, lit, NONE], x * 3)
+    else if (x === full && rem >= 0.5) words.set([HALF, lit, NONE], x * 3)
+    else words.set([EMPTY, theme.barEmpty, NONE], x * 3)
   }
   return pack(words)
 }
 
 /**
- * A desktop progress bar: the same gradient as SVG, a still image (no
- * animation), so redrawing it with the same value changes nothing on screen.
+ * A desktop progress bar, the usage meter's: a rounded track, the theme's
+ * gradient with a glossy sheen, and a shimmer sweeping across the fill. Drawn
+ * in an interactive frame so the shimmer runs.
+ *
+ * The source depends only on the whole percent, the width and the theme, so a
+ * redraw at the same percent hands the surface the same SVG and the shimmer
+ * runs on undisturbed; it restarts only when the bar grows.
  */
 export function barSvg(p: number, width: number, theme: Theme): string {
   const c = (n: number) => '#' + n.toString(16).padStart(6, '0')
-  const fill = `<rect y="0" height="6" rx="3" width="${Math.round(Math.max(0, Math.min(1, p)) * width)}" fill="url(#g)"/>`
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} 6" width="${width}" height="6">`
-    + `<defs><linearGradient id="g"><stop offset="0" stop-color="${c(theme.barFrom)}"/><stop offset="1" stop-color="${c(theme.barTo)}"/></linearGradient></defs>`
-    + `<rect width="${width}" height="6" rx="3" fill="${c(theme.barEmpty)}" fill-opacity="0.35"/>${fill}</svg>`
+  const H = 6
+  const percent = Math.round(Math.max(0, Math.min(1, p)) * 100)
+  const filled = Math.round((width * percent) / 100)
+  // Ids unique to the drawing, so two bars on one page never share a clip.
+  const u = `as${percent}w${width}${c(theme.barFrom).slice(1)}${c(theme.barTo).slice(1)}`
+
+  const fill =
+    filled > 0
+      ? `<clipPath id="${u}-clip"><rect width="${filled}" height="${H}" rx="${H / 2}"/></clipPath>` +
+        `<g clip-path="url(#${u}-clip)">` +
+        `<rect width="${width}" height="${H}" fill="url(#${u}-fill)"/>` +
+        `<rect width="${width}" height="${H / 2}" fill="#ffffff" opacity="0.18"/>` +
+        `<rect x="-36" width="36" height="${H}" fill="url(#${u}-shimmer)">` +
+        `<animate attributeName="x" from="-36" to="${filled}" dur="2.4s" repeatCount="indefinite"/></rect>` +
+        '</g>'
+      : ''
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}">` +
+    '<defs>' +
+    `<linearGradient id="${u}-fill" x1="0" x2="1"><stop offset="0" stop-color="${c(theme.barFrom)}"/><stop offset="1" stop-color="${c(theme.barTo)}"/></linearGradient>` +
+    `<linearGradient id="${u}-shimmer" x1="0" x2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>` +
+    '</defs>' +
+    `<rect width="${width}" height="${H}" rx="${H / 2}" fill="${c(theme.barEmpty)}" fill-opacity="0.35"/>` +
+    fill +
+    '</svg>'
+  )
 }

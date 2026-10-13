@@ -9,7 +9,7 @@ import { addUsed, cleanTask, describeCall, mcpParts, safeText, usedLine, usedOf 
 import { BUST, FRAMES, FULL, HEAD, MINI, ROLES, cropCells, poseOf, robotGrid, robotSvg, roleOf } from './robots'
 import type { Pose, Role } from './robots'
 import { astroGrid } from './astronauts'
-import { THEMES, barFrame, figureStillSvg, figureSvg, robotCells, stageAgents } from './stage'
+import { THEMES, barFrame, barSvg, figureStillSvg, figureSvg, robotCells, stageAgents } from './stage'
 
 const RUN: StageRun = {
   isWorking: true,
@@ -80,6 +80,42 @@ test('the desktop SVG of every role and pose fits the Svg element limit', async 
 test('the bar frame is one row in both determinate and indeterminate form', async () => {
   expect(barFrame(0.42, 0.5, 30, THEMES.ocean).length).toBe(b64Len(30))
   expect(barFrame(null, 0.5, 30, THEMES.ocean).length).toBe(b64Len(30))
+})
+
+// The characters of a packed bar row: every third u32, little-endian.
+function barChars(cells: string): string {
+  const bin = atob(cells)
+  let out = ''
+  for (let i = 0; i < bin.length; i += 12) {
+    const code = bin.charCodeAt(i) | (bin.charCodeAt(i + 1) << 8) | (bin.charCodeAt(i + 2) << 16)
+    out += String.fromCodePoint(code)
+  }
+  return out
+}
+
+test('the terminal bar is the slim ━ line with a half-cell edge', async () => {
+  // 42% of 10 cells is 4.2: four full, no half; 45% is 4.5: four full and a half.
+  expect(barChars(barFrame(0.42, 0.5, 10, THEMES.ocean))).toBe('━━━━──────')
+  expect(barChars(barFrame(0.45, 0.5, 10, THEMES.ocean))).toBe('━━━━╸─────')
+  expect(barChars(barFrame(0, 0.5, 10, THEMES.ocean))).toBe('──────────')
+  expect(barChars(barFrame(null, 0.5, 10, THEMES.ocean))).toMatch(/^─*━{3,}─*$/)
+})
+
+test('the desktop bar has the sheen and a running shimmer, in the theme colors', async () => {
+  const svg = barSvg(0.42, 400, THEMES.sunset)
+  expect(svg).toContain('width="400"')
+  expect(svg).toContain('<rect width="168" height="6" rx="3"/>')
+  expect(svg).toContain('<animate attributeName="x"')
+  expect(svg).toContain('opacity="0.18"')
+  expect(svg).toContain('stop-color="#f43f5e"')
+  expect(svg).toContain('stop-color="#facc15"')
+  expect(barSvg(0, 400, THEMES.sunset)).not.toContain('<animate')
+})
+
+test('the desktop bar is the same SVG until the percent moves, so the shimmer runs on', async () => {
+  expect(barSvg(0.421, 400, THEMES.neon)).toBe(barSvg(0.424, 400, THEMES.neon))
+  expect(barSvg(0.43, 400, THEMES.neon)).not.toBe(barSvg(0.42, 400, THEMES.neon))
+  expect(barSvg(0.42, 400, THEMES.neon)).not.toBe(barSvg(0.42, 400, THEMES.ocean))
 })
 
 test('progress runs 0 to 100%: tasks first, then agents, then tool calls, held under 100% mid-turn', async () => {

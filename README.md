@@ -61,6 +61,8 @@ claude plugin update agent-stage@saharat-mods
 
 then `/reload-plugins` in any open session.
 
+What changed in each version: [CHANGELOG.md](CHANGELOG.md).
+
 ## Develop
 
 The hooks live in `hooks/`: `register.tsx` wires the events and draws the

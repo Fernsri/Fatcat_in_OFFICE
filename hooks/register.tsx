@@ -392,9 +392,11 @@ export const register: Register = (on, options) => {
 
     const { Box, Text, Svg } = $.ui.resolve(e)
     const label = bandLabel(r, now, p, false)
+    // Fill the row beside the label: the desktop app lays out about 8px per cell.
+    const width = clamp((e.props.bodyColumns - label.length - 3) * 8, 120, 720)
     return (
       <Box flexDirection="row" alignItems="center" gap={1}>
-        <Svg source={barSvg(p, 240, theme)} alt={label} width={240} height={6} />
+        <Svg source={barSvg(p, width, theme)} alt={label} width={width} height={6} isInteractive />
         <Text dimColor>{label}</Text>
       </Box>
     )
