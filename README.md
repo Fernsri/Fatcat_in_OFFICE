@@ -59,7 +59,6 @@ Set them with `/plugin configure agent-office-cats@jitapa-mods` in a terminal se
 | `skin` | `office-cats`, `space-crew`, `robots` | `office-cats` |
 | `backdrop` | `skin` (the figures' own), `terminal` (your terminal's background) | `skin` |
 | `theme` | `matcha` (a matcha café: cream paper, greens, chocolate ink), `neon`, `ocean`, `sunset`, `mono` (header and bar colors) | `matcha` |
-| `appearance` | `auto` (follow Claude's theme setting), `light`, `dark` | `auto` |
 | `fps` | 4 to 30, how often the terminal repaints | `12` |
 | `autoOpenPane` | open the pane when a session starts | `true` |
 | `toasts` | a small note in the app when Claude finishes, stops on an error, or a helper has an error | `true` |

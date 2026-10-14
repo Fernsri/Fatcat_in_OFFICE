@@ -4,6 +4,12 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.18.0 (2026-10-15)
+
+**No dark mode after all.**
+
+- The dark paper and ink, the `appearance` setting and following Claude's theme are gone again; the Cat Office keeps its cream paper. The seven rows and the gray Tester stay.
+
 ## 0.17.0 (2026-10-15)
 
 **The whole team, day and night.**

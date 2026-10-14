@@ -1,6 +1,6 @@
 {
   "name": "agent-office-cats",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "Cat Office: a thin row per agent with an animated pixel cat (or robot, or spacefarer) for its role, what it is doing and its own little bar, under a pixel-office header, plus a progress bar above the prompt",
   "author": {
     "name": "Jitapa Porsom"
@@ -64,17 +64,6 @@
       "title": "Desktop notification after (seconds)",
       "description": "Send a desktop notification when Claude finishes or stops on an error after working at least this long; 0 turns it off",
       "default": 30
-    },
-    "appearance": {
-      "type": "string",
-      "title": "Light or dark",
-      "description": "auto: follow Claude's theme setting (a theme named dark-anything means dark). light or dark: always that one. Dark gives the header, the cats' backdrop and the tracks a deep paper and light ink.",
-      "default": "auto",
-      "options": [
-        "auto",
-        "light",
-        "dark"
-      ]
     }
   }
 }
