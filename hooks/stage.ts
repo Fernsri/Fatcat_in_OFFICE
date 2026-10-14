@@ -400,13 +400,13 @@ function pixelArt(rows: readonly string[], colors: Record<string, string>, outli
   }))
 }
 
-/** The lead cat in small: the orange tabby's head over its suit collar and tie. */
+/** The lead cat in small, rice-ball round: the orange tabby's head over its suit collar and tie. */
 const WALKER = [
-  '.O.........O.',
-  '.OO.......OO.',
-  '.OPO.....OPO.',
-  'OOOOOROROOOOO',
-  'OOOOOOOOOOOOO',
+  '..O.......O..',
+  '..OP.....PO..',
+  '..OOOOOOOOO..',
+  '.OOOOROROOOO.',
+  '.OOOOOOOOOOO.',
   'OOWEOOOOOWEOO',
   'OOEEOOOOOEEOO',
   'OKOOOONOOOOKO',

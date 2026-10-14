@@ -47,14 +47,13 @@ const BLUSH = '#FF9FB2'
 
 const trio = (c: string): Trio => [c, mixHex(c, '#FFFFFF', 0.35), mixHex(c, '#000000', 0.22)]
 
-/** The blob from the top of the head to the bottom of the belly: [y, x0, x1]. */
-const BODY: [number, number, number][] = [
-  [6, 9, 22],
-  [7, 8, 23],
-  ...[8, 9, 10, 11, 12, 13].map((y): [number, number, number] => [y, 7, 24]),
-  ...[14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].map((y): [number, number, number] => [y, 6, 25]),
-  [25, 7, 24],
-]
+/**
+ * The body from the top of the head to the bottom of the belly, [y, x0, x1]:
+ * a rice ball (onigiri), a rounded crown widening smoothly to a broad base,
+ * its bottom corners rounded off.
+ */
+const LEFT = [12, 10, 9, 8, 8, 7, 7, 7, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 6, 7] // x0 for y = 5..25
+const BODY: [number, number, number][] = LEFT.map((x0, i): [number, number, number] => [5 + i, x0, 31 - x0])
 
 /**
  * One frame as rows of colors, like robotGrid: `null` is backdrop, every other
@@ -101,10 +100,10 @@ export function catGrid(role: Role, pose: Pose, frame: number): (string | null)[
 
   // the tail, behind the body: curled up, up straight when cheering, flat on failure
   const tailPath: [number, number][] = done
-    ? [[5, 24], [4, 23], [3, 22], [3, 21], [3, 20], [3, 19], [3, 18], [3, 17]]
+    ? [[4, 24], [3, 23], [2, 22], [2, 21], [2, 20], [2, 19], [2, 18], [2, 17]]
     : fail
-      ? [[5, 26], [4, 27], [3, 27], [2, 27], [1, 26]]
-      : [[5, 24], [4, 23], [3, 22], [3, 21], [3, 20], [3, 19], [4, 18]]
+      ? [[4, 26], [3, 27], [2, 27], [1, 27], [0, 26]]
+      : [[4, 24], [3, 23], [2, 22], [2, 21], [2, 20], [2, 19], [3, 18]]
   const sway = walk ? [0, -1, 0, 1][f % 4] ?? 0 : 0
   tailPath.forEach(([x, y], i) => {
     const dx = !done && !fail && y <= 20 ? sway : 0
@@ -129,9 +128,9 @@ export function catGrid(role: Role, pose: Pose, frame: number): (string | null)[
   const earFur = (left: boolean) => (C.coat === 'pointed' ? points[0] : C.coat === 'calico' ? (left ? C.mark : C.mark2) ?? fur[0] : fur[0])
   const ear = (left: boolean) => {
     const m = (x: number) => (left ? x : 31 - x)
-    const rows: [number, number, number][] = fail ? [[5, 6, 9], [6, 6, 7]] : [[3, 8, 9], [4, 8, 10], [5, 8, 11]]
+    const rows: [number, number, number][] = fail ? [[4, 9, 12], [5, 8, 10]] : [[2, 11, 11], [3, 10, 12], [4, 10, 13]]
     for (const [y, a, b] of rows) for (let x = a; x <= b; x++) put(m(x), y + hy, earFur(left))
-    const inner: [number, number, number][] = fail ? [[5, 7, 8]] : [[4, 9, 9], [5, 9, 10]]
+    const inner: [number, number, number][] = fail ? [[4, 10, 11]] : [[3, 11, 11], [4, 11, 12]]
     for (const [y, a, b] of inner) for (let x = a; x <= b; x++) put(m(x), y + hy, NOSE)
   }
   ear(true)
@@ -146,16 +145,21 @@ export function catGrid(role: Role, pose: Pose, frame: number): (string | null)[
     if (y === bottom) box(x0 + 1, yy, x1, yy, fur[2])
   }
 
-  // coat markings and the pale chest
+  // coat markings and the pale chest, painted only on fur so the round outline stays round
+  const furs = new Set<string>(fur)
+  const coat = (x0: number, y0: number, x1: number, y1: number, c: string) => {
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (furs.has(fg[y]?.[x] ?? '')) put(x, y, c)
+  }
+  const edge = (y: number) => BODY.find(([by0]) => by0 === y) ?? [y, 15, 16]
   if (C.chest) for (const [y, a, b] of [[12, 12, 19], [13, 11, 20], [14, 11, 20], [15, 12, 19]] as const) box(a, y + hy, b, y + hy, C.chest)
   if (C.coat === 'tabby' && C.mark) {
     for (const [x, y] of [[13, 6], [13, 7], [15, 6], [16, 6], [15, 7], [16, 7], [18, 6], [18, 7]] as const) put(x, y + hy, C.mark)
-    for (const y of [9, 11, 15, 17]) { box(6, y + hy, 7, y + hy, C.mark); box(24, y + hy, 25, y + hy, C.mark) }
+    for (const y of [9, 11, 15, 17]) { const [, x0, x1] = edge(y); coat(x0, y + hy, x0 + 1, y + hy, C.mark); coat(x1 - 1, y + hy, x1, y + hy, C.mark) }
   }
   if (C.coat === 'calico' && C.mark && C.mark2) {
-    box(8, 6 + hy, 12, 8 + hy, C.mark); box(7, 7 + hy, 7, 10 + hy, C.mark)
-    box(20, 6 + hy, 23, 7 + hy, C.mark2); box(24, 7 + hy, 24, 9 + hy, C.mark2)
-    box(6, 14 + hy, 8, 17 + hy, C.mark); box(23, 15 + hy, 25, 17 + hy, C.mark2)
+    coat(6, 5 + hy, 12, 9 + hy, C.mark)
+    coat(19, 5 + hy, 25, 8 + hy, C.mark2)
+    coat(4, 14 + hy, 8, 17 + hy, C.mark); coat(23, 15 + hy, 27, 17 + hy, C.mark2)
   }
   if (C.coat === 'pointed') {
     const mask = mixHex(points[0], fur[0], 0.45)

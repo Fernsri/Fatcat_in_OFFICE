@@ -4,6 +4,14 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.14.0 (2026-10-14)
+
+**Rice-ball cats.**
+
+- The cats are shaped like onigiri: a small round crown, shoulders sloping evenly out to a broad, rounded base, instead of a box. The ears sit on the crown, the tail curls out beside the wider base.
+- Coat markings are painted only on fur, so stripes and patches never bump the round outline.
+- The little cat walking the progress bar has the same round crown.
+
 ## 0.13.0 (2026-10-14)
 
 **A matcha café.**
