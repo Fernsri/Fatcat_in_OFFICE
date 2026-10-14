@@ -4,25 +4,35 @@
 
 import type { StageAgent, StageRun } from '../types'
 import { astroGrid, astroSvg, LOOKS, SPACE } from './astronauts'
+import { catGrid, catSvg, CATS, OFFICE } from './cats'
 import { BACKDROP, cropCells, halfGrid, ROLES, robotGrid, robotSvg } from './robots'
 import type { Crop, Pose, Role } from './robots'
 
-/** The two looks a figure can have: the pixel robots or the space crew. */
-export type Skin = 'robots' | 'space-crew'
+/** The looks a figure can have: the office cats, the pixel robots or the space crew. */
+export type Skin = 'office-cats' | 'robots' | 'space-crew'
 
-/** The skin a config value names; the space crew unless it names the robots. */
+type Grid = (string | null)[][]
+
+/** Everything a skin draws with: its frames, its animated SVG, its backdrop and its figures' names. */
+const SKINS: Record<Skin, { grid: (role: Role, pose: Pose, frame: number) => Grid; svg: (role: Role, pose: Pose) => string; backdrop: string; name: (role: Role) => string }> = {
+  'office-cats': { grid: catGrid, svg: catSvg, backdrop: OFFICE, name: role => `${ROLES[role].label}, the ${CATS[role].kind}` },
+  robots: { grid: robotGrid, svg: robotSvg, backdrop: BACKDROP, name: role => `${ROLES[role].label} robot` },
+  'space-crew': { grid: astroGrid, svg: astroSvg, backdrop: SPACE, name: role => `${ROLES[role].label}, the ${LOOKS[role].kind.toLowerCase()}` },
+}
+
+/** The skin a config value names; the office cats unless it names another. */
 export function skinNamed(name: string): Skin {
-  return name === 'robots' ? 'robots' : 'space-crew'
+  return name === 'robots' || name === 'space-crew' ? name : 'office-cats'
 }
 
 /** What a role's figure is called in a skin, for alt text: "Coder robot", "Engineer". */
 export function figureName(skin: Skin, role: Role): string {
-  return skin === 'space-crew' ? `${ROLES[role].label}, the ${LOOKS[role].kind.toLowerCase()}` : `${ROLES[role].label} robot`
+  return SKINS[skin].name(role)
 }
 
 /** One role and pose as a self-animating SVG, for the desktop and other remote surfaces. */
 export function figureSvg(skin: Skin, role: Role, pose: Pose): string {
-  return skin === 'space-crew' ? astroSvg(role, pose) : robotSvg(role, pose)
+  return SKINS[skin].svg(role, pose)
 }
 
 /**
@@ -31,8 +41,8 @@ export function figureSvg(skin: Skin, role: Role, pose: Pose): string {
  * restarts; used for figures that are done, failed or idle.
  */
 export function figureStillSvg(skin: Skin, role: Role, pose: Pose): string {
-  const grid = skin === 'space-crew' ? astroGrid(role, pose, 0) : robotGrid(role, pose, 0)
-  const backdrop = skin === 'space-crew' ? SPACE : BACKDROP
+  const grid = SKINS[skin].grid(role, pose, 0)
+  const backdrop = SKINS[skin].backdrop
   const byColor = new Map<string, string>()
   grid.forEach((row, y) => {
     let x = 0
@@ -125,13 +135,13 @@ const toNum = (c: string | null, backdrop: number) => (c ? parseInt(c.slice(1), 
 /**
  * One figure frame as Raster cells over `crop` (its height must be even).
  * `transparent` leaves the backdrop to the terminal instead of the skin's own
- * (beige for the robots, deep space for the crew).
+ * (an office wall for the cats, beige for the robots, deep space for the crew).
  */
 export function robotCells(role: Role, pose: Pose, frame: number, crop: Crop, transparent = false, skin: Skin = 'robots'): string {
-  const full = skin === 'space-crew' ? astroGrid(role, pose, frame) : robotGrid(role, pose, frame)
+  const full = SKINS[skin].grid(role, pose, frame)
   const grid = crop.half ? halfGrid(full) : full
   const s = crop.half ? 2 : 1
-  const back = transparent ? NONE : parseInt((skin === 'space-crew' ? SPACE : BACKDROP).slice(1), 16)
+  const back = transparent ? NONE : parseInt(SKINS[skin].backdrop.slice(1), 16)
   const { columns, rows } = cropCells(crop)
   const x0 = crop.x / s
   const y0 = crop.y / s

@@ -340,7 +340,12 @@ export function halfGrid(grid: (string | null)[][]): (string | null)[][] {
  * Squares are merged into one path per color per frame to stay small.
  */
 export function robotSvg(role: Role, pose: Pose, backdrop = BACKDROP): string {
-  const frames = Array.from({ length: FRAMES }, (_, k) => robotGrid(role, pose, k))
+  return spriteSvg(k => robotGrid(role, pose, k), backdrop)
+}
+
+/** The animated SVG of any skin's sprite, given its frame at each step of the loop. */
+export function spriteSvg(gridAt: (frame: number) => (string | null)[][], backdrop: string): string {
+  const frames = Array.from({ length: FRAMES }, (_, k) => gridAt(k))
   const paths = (grid: (string | null)[][], keep: (c: string) => boolean) => {
     const byColor = new Map<string, string>()
     grid.forEach((row, y) => {

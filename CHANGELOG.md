@@ -1,7 +1,17 @@
 # Release notes
 
-Each version of agent-stage, newest first. Update with
-`claude plugin update agent-stage@saharat-mods`, then `/reload-plugins`.
+Each version of agent-office-cats, newest first (0.6.0 and earlier are
+Saharat's agent-stage). Update with
+`claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
+
+## 0.7.0 (2026-10-14)
+
+**The office cats, a fork of agent-stage.**
+
+- A third skin, `office-cats`, and the new default: chubby, brightly colored pixel cats, one per role. The lead is an orange tabby in a suit at a whiteboard; the others wear overalls in the role color and hold their kit: a coffee mug, a laptop, a LAN cable, a checklist, a magnifying glass, an iPad.
+- The same five poses as the other skins: walking, thinking with a paw on the chin, jumping for joy, ears flat on failure, dozing when idle.
+- Renamed to agent-office-cats in the jitapa-mods marketplace, with the command `/office`, so it installs beside agent-stage.
+- The skins are one table in `stage.ts`.
 
 ## 0.6.0 (2026-10-13)
 

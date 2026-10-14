@@ -48,6 +48,6 @@ export type StageRun = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'agent-stage': { run: StageRun }
+    'agent-office-cats': { run: StageRun }
   }
 }

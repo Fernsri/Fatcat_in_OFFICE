@@ -9,7 +9,8 @@ import { addUsed, cleanTask, describeCall, mcpParts, safeText, usedLine, usedOf 
 import { BUST, FRAMES, FULL, HEAD, MINI, ROLES, cropCells, poseOf, robotGrid, robotSvg, roleOf } from './robots'
 import type { Pose, Role } from './robots'
 import { astroGrid } from './astronauts'
-import { THEMES, barFrame, barSvg, figureStillSvg, figureSvg, robotCells, stageAgents } from './stage'
+import { catGrid } from './cats'
+import { THEMES, barFrame, barSvg, figureName, figureStillSvg, figureSvg, robotCells, skinNamed, stageAgents } from './stage'
 
 const RUN: StageRun = {
   isWorking: true,
@@ -56,12 +57,42 @@ test('every space crew role and pose draws a full grid, and its SVG fits the Svg
   expect(robotCells('researcher', 'think', 2, BUST, false, 'space-crew').length).toBe(b64Len(BUST.w * (BUST.h >> 1)))
 })
 
+test('every office cat role and pose draws a full grid, and its SVG fits the Svg limit', async () => {
+  for (const role of ALL_ROLES) {
+    for (const pose of ALL_POSES) {
+      for (let f = 0; f < FRAMES; f++) {
+        const grid = catGrid(role, pose, f)
+        expect(grid.length).toBe(32)
+        expect(grid.every(row => row.length === 32)).toBe(true)
+        expect(grid.flat().every(c => c === null || /^#[0-9A-Fa-f]{6}$/.test(c))).toBe(true)
+      }
+      expect(figureSvg('office-cats', role, pose).length).toBeLessThan(131072)
+    }
+  }
+})
+
+test('each cat looks like no other, and each of its poses like no other', async () => {
+  const key = (role: Role, pose: Pose) => JSON.stringify(catGrid(role, pose, 0))
+  expect(new Set(ALL_ROLES.map(role => key(role, 'walk'))).size).toBe(ALL_ROLES.length)
+  for (const role of ALL_ROLES) expect(new Set(ALL_POSES.map(pose => key(role, pose))).size).toBe(ALL_POSES.length)
+  // working cats move between frames; the cat's name reads its coat
+  expect(JSON.stringify(catGrid('coder', 'walk', 0))).not.toBe(JSON.stringify(catGrid('coder', 'walk', 1)))
+  expect(figureName('office-cats', 'planner')).toBe('Planner, the blue-grey cat')
+})
+
+test('the office cats are the default skin; the others are still a setting away', async () => {
+  expect(skinNamed('office-cats')).toBe('office-cats')
+  expect(skinNamed('')).toBe('office-cats')
+  expect(skinNamed('robots')).toBe('robots')
+  expect(skinNamed('space-crew')).toBe('space-crew')
+})
+
 test('terminal cells fill exactly the crop, bust and full', async () => {
   expect(robotCells('tester', 'walk', 3, BUST).length).toBe(b64Len(BUST.w * (BUST.h >> 1)))
   expect(robotCells('designer', 'done', 5, FULL, true).length).toBe(b64Len(FULL.w * (FULL.h >> 1)))
   expect(cropCells(HEAD)).toEqual({ columns: 28, rows: 8 })
   expect(cropCells(MINI)).toEqual({ columns: 14, rows: 5 })
-  for (const skin of ['robots', 'space-crew'] as const) {
+  for (const skin of ['office-cats', 'robots', 'space-crew'] as const) {
     expect(robotCells('coder', 'think', 1, HEAD, false, skin).length).toBe(b64Len(28 * 8))
     expect(robotCells('coder', 'think', 1, MINI, false, skin).length).toBe(b64Len(14 * 5))
   }
@@ -199,7 +230,7 @@ test('a report coming back keeps every card; only a new request from the person 
 })
 
 test('done, failed and idle figures are still pictures; working ones animate', async () => {
-  for (const skin of ['robots', 'space-crew'] as const) {
+  for (const skin of ['office-cats', 'robots', 'space-crew'] as const) {
     for (const pose of ['done', 'fail', 'idle'] as const) {
       const still = figureStillSvg(skin, 'coder', pose)
       expect(still.startsWith('<svg')).toBe(true)
@@ -233,13 +264,13 @@ test('a quick gap between tool calls stays Working; only a long quiet gap shows 
   await $.tool.call({ tool: 'Grep', pattern: 'size', agentId: 'sub-9' } as never)
   const props = { title: 'Agents Office', isFocused: false, bodyColumns: 80, placement: 'dock' as const, scroll: SCROLL, view: {} }
 
-  let pane = await $.ui.mount({ plugin: 'agent-stage', surface: 'desktop', component: 'Pane', requestId: 'agent-stage', props })
+  let pane = await $.ui.mount({ plugin: 'agent-office-cats', surface: 'desktop', component: 'Pane', requestId: 'agent-office-cats', props })
   expect(await pane.find({ type: 'Text', text: /● Working · 1 tool call/ })).toBeDefined()
   expect(await pane.find({ type: 'Text', text: /Searching for "size"/ })).toBeDefined()
   await pane.unmount()
 
   await clock.advance(3_000)
-  pane = await $.ui.mount({ plugin: 'agent-stage', surface: 'desktop', component: 'Pane', requestId: 'agent-stage', props })
+  pane = await $.ui.mount({ plugin: 'agent-office-cats', surface: 'desktop', component: 'Pane', requestId: 'agent-office-cats', props })
   expect(await pane.find({ type: 'Text', text: /◐ Thinking · 1 tool call/ })).toBeDefined()
   expect(await pane.find({ type: 'Text', text: /Last: Searching for "size"/ })).toBeDefined()
   await pane.unmount()
@@ -261,7 +292,7 @@ test('a spawned subagent and the plan show on the pane and the band', async ($, 
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const pane = await $.ui.mount({
-      plugin: 'agent-stage', surface, component: 'Pane', requestId: 'agent-stage',
+      plugin: 'agent-office-cats', surface, component: 'Pane', requestId: 'agent-office-cats',
       props: { title: 'Agents Office', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: SCROLL, view: {} },
     })
     expect(await pane.find({ type: 'Text', text: /Agents Office/ })).toBeDefined()
@@ -274,7 +305,7 @@ test('a spawned subagent and the plan show on the pane and the band', async ($, 
     await pane.unmount()
 
     const band = await $.ui.mount({
-      plugin: 'agent-stage', surface, component: 'AbovePrompt',
+      plugin: 'agent-office-cats', surface, component: 'AbovePrompt',
       props: { hasSurvey: false, isWorking: true, maxRows: 4, bodyColumns: 100, scroll: SCROLL, view: {} },
     })
     expect(await band.find({ type: 'Text', text: /50%/ })).toBeDefined()
@@ -311,7 +342,7 @@ test('a short terminal gets smaller figures, never cards without them', async ($
     provider: { plugin: 'engine', tier: 'core' }, parentModel: 'claude-opus-5-5', background: false, fork: false,
   })
   const mount = (bodyRows: number, bodyColumns = 80) => $.ui.mount({
-    plugin: 'agent-stage', surface: 'terminal', component: 'Pane', requestId: 'agent-stage',
+    plugin: 'agent-office-cats', surface: 'terminal', component: 'Pane', requestId: 'agent-office-cats',
     props: { title: 'Agents Office', isFocused: false, bodyColumns, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
   })
 

@@ -1,9 +1,9 @@
 {
-  "name": "agent-stage",
-  "version": "0.6.0",
-  "description": "Agents Office: a card per agent with an animated pixel figure for its role (Team Lead, Planner, Coder, Tester, Reviewer, Researcher, Designer) as robots or a space crew, plus a progress bar above the prompt",
+  "name": "agent-office-cats",
+  "version": "0.7.0",
+  "description": "Agents Office with office cats: a card per agent with an animated pixel cat (or robot, or spacefarer) for its role (Team Lead, Planner, Coder, Tester, Reviewer, Researcher, Designer), plus a progress bar above the prompt",
   "author": {
-    "name": "Saharat"
+    "name": "Jitapa Porsom"
   },
   "types": "./types/index.d.ts",
   "userConfig": {
@@ -22,9 +22,10 @@
     "skin": {
       "type": "string",
       "title": "Figures",
-      "description": "robots: the pixel robots. space-crew: a different spacefarer per role (Commander, Navigator, Engineer, Test pilot, Inspector, Astronomer, Star artist).",
-      "default": "space-crew",
+      "description": "office-cats: a chubby cat per role in overalls, the lead in a suit (orange tabby, blue-grey, golden, calico, siamese, pink tabby, white). robots: the pixel robots. space-crew: a different spacefarer per role.",
+      "default": "office-cats",
       "options": [
+        "office-cats",
         "robots",
         "space-crew"
       ]
@@ -42,7 +43,7 @@
     "backdrop": {
       "type": "string",
       "title": "Figure backdrop in the terminal",
-      "description": "skin: the figures' own backdrop (beige for robots, deep space for the crew). terminal: your terminal's own background.",
+      "description": "skin: the figures' own backdrop (an office wall for the cats, beige for robots, deep space for the crew). terminal: your terminal's own background.",
       "default": "skin",
       "options": [
         "skin",
@@ -58,7 +59,7 @@
     "autoOpenPane": {
       "type": "boolean",
       "title": "Open the pane on start",
-      "description": "Open the Agents Office by itself when the session starts (needs a wide terminal); /stage always opens it",
+      "description": "Open the Agents Office by itself when the session starts (needs a wide terminal); /office always opens it",
       "default": true
     }
   }

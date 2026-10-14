@@ -12,7 +12,7 @@ import { startTurn } from './run'
 import { barFrame, barSvg, figureName, figureStillSvg, figureSvg, robotCells, skinNamed, themeNamed, THEMES } from './stage'
 import type { Skin, Theme } from './stage'
 
-const PANE = 'agent-stage'
+const PANE = 'agent-office-cats'
 const EMPTY: StageRun = {
   isWorking: false,
   turnStartedAt: 0,
@@ -22,7 +22,7 @@ const EMPTY: StageRun = {
   agents: [],
   tasks: [],
 }
-const runAtom = atom({ plugin: 'agent-stage', key: 'run' } as const, EMPTY)
+const runAtom = atom({ plugin: 'agent-office-cats', key: 'run' } as const, EMPTY)
 
 /** The pane redraws at most this often, however many updates arrive. */
 const REDRAW_MS = 1500
@@ -159,7 +159,7 @@ export const register: Register = (on, options) => {
   snapLive = false
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'stage', description: 'Open the Agents Office: Main and its subagents at work' })
+    await $.command.register({ name: 'office', description: 'Open the Agents Office: Main and its subagents at work' })
     snap = await read($, runAtom)
     snapLive = true
     nowMs = await $.clock.now()
@@ -168,7 +168,7 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'stage' }, async $ => {
+  on('command.run', { command: 'office' }, async $ => {
     await $.ui.open({ id: PANE, title: 'Agents Office' })
     return { text: 'Agents Office opened.' }
   })
