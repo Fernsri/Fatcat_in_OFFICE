@@ -25,8 +25,8 @@ export const CATS: Record<Role, { kind: string }> = {
   designer: { kind: 'pink-and-white cat' },
 }
 
-/** The file's pose for each of the stage's: walking at work, blinking in thought, happy when done, surprised on failure, asleep when idle. */
-const FILE_POSE: Record<Pose, string> = { walk: 'walk', think: 'blink', done: 'happy', fail: 'surprise', idle: 'sleep' }
+/** The file's pose for each of the stage's, plus a thinking pose of our own: walking at work, a thought bubble in thought, happy when done, surprised on failure, asleep when idle. */
+const FILE_POSE: Record<Pose, string> = { walk: 'walk', think: 'think', done: 'happy', fail: 'surprise', idle: 'sleep' }
 
 /** The file's drawCat, as the user wrote it, onto a grid instead of a canvas; `f` is 0..3. */
 function drawCat(role: Role, pose: string, f: number): (string | null)[][] {
@@ -36,7 +36,7 @@ function drawCat(role: Role, pose: string, f: number): (string | null)[][] {
     for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) { const row = g[yy]; if (row && xx >= 0 && xx < N) row[xx] = color }
   }
   const i = f & 3
-  const poseFrame = ({ walk: [0, 1, 2, 3], blink: [0, 1, 2, 3], happy: [2, 0, 4, 0], surprise: [0, 2, 0, 4], sleep: [1, 3, 1, 3] } as Record<string, number[]>)[pose] ?? [0, 1, 2, 3]
+  const poseFrame = ({ walk: [0, 1, 2, 3], blink: [0, 1, 2, 3], think: [0, 0, 0, 0], happy: [2, 0, 4, 0], surprise: [0, 2, 0, 4], sleep: [1, 3, 1, 3] } as Record<string, number[]>)[pose] ?? [0, 1, 2, 3]
   const { palette, takes } = SPRITES[role]
   const rows = takes[poseFrame[i] ?? 0] ?? []
   rows.forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = palette[row[x]!]; if (c) fillRect(x, y, 1, 1, c) } })
@@ -45,6 +45,15 @@ function drawCat(role: Role, pose: string, f: number): (string | null)[][] {
     // Pixel Z marks within canvas bounds.
     fillRect(81 + j, 9, 9, 2, '#28335e'); fillRect(87 + j, 11, 3, 3, '#28335e'); fillRect(81 + j, 14, 9, 2, '#28335e')
     fillRect(75 + j, 19, 6, 2, '#28335e'); fillRect(79 + j, 21, 2, 2, '#28335e'); fillRect(75 + j, 23, 6, 2, '#28335e')
+  }
+  if (pose === 'think') {
+    // ours, in the file's ink: two little bubbles rising to a cloud, its dots filling in one by one
+    const INK = '#273158', PAPER = '#ffffff'
+    const blob = (x: number, y: number, w: number, h: number) => { fillRect(x + 1, y, w - 2, h, INK); fillRect(x, y + 1, w, h - 2, INK); fillRect(x + 1, y + 1, w - 2, h - 2, PAPER) }
+    blob(70, 26, 4, 4)
+    blob(74, 19, 6, 6)
+    blob(76, 3, 21, 13)
+    for (let d = 0; d < 3; d++) fillRect(80 + d * 5, 8, 3, 3, d <= i - 1 || i === 0 && d < 0 ? INK : '#c9cfe0')
   }
   if (pose === 'happy' && (i === 1 || i === 3)) { fillRect(21, 49, 4, 3, '#e77899'); fillRect(68, 49, 4, 3, '#e77899') }
   if (pose === 'surprise' && (i === 1 || i === 3)) { fillRect(79, 8, 4, 13, '#273158'); fillRect(79, 24, 4, 4, '#273158') }

@@ -405,7 +405,7 @@ function pixelArt(rows: readonly string[], colors: Record<string, string>, outli
 
 /** The lead cat, the orange tabby of the office cats, at half size and cropped to the cat: walking, or happy when cheering. */
 function walkerFrame(cheer: boolean, frame: number): Grid {
-  const g = catGrid('lead', cheer ? 'done' : 'walk', frame)
+  const g = halfGrid(catGridFull('lead', cheer ? 'done' : 'walk', frame))
   const used = g.map((r, y) => (r.some(Boolean) ? y : -1)).filter(y => y >= 0)
   const cols = g.flatMap(r => r.map((c, x) => (c ? x : -1))).filter(x => x >= 0)
   const x0 = Math.min(...cols), x1 = Math.max(...cols)
@@ -423,7 +423,7 @@ function walkerFrame(cheer: boolean, frame: number): Grid {
  */
 export function bandCatSvg(p: number, width: number, theme: Theme, celebrate = false): string {
   const c = (n: number) => '#' + n.toString(16).padStart(6, '0')
-  const H = 40, BAR = 8, BAR_Y = 27, S = 1
+  const H = 56, BAR = 8, BAR_Y = 43, S = 1
   const percent = celebrate ? 100 : Math.round(Math.max(0, Math.min(1, p)) * 100)
   const fishW = 16 * S
   const trackW = width - fishW - 6

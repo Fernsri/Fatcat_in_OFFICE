@@ -4,6 +4,13 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.16.0 (2026-10-15)
+
+**A thinking cat, and a sharper walker.**
+
+- Thinking has its own look: the cat sits still under a pixel thought bubble whose three dots fill in one by one, in the file's ink. Before, it was the walk.
+- The cat walking the progress bar is the orange tabby at half size (about 43 × 40) instead of 32 × 32; the band is 56 px tall to fit it.
+
 ## 0.15.0 (2026-10-15)
 
 **The user's own cats.**

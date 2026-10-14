@@ -9,7 +9,7 @@ import { addUsed, cleanTask, describeCall, mcpParts, safeText, usedLine, usedOf 
 import { BUST, FRAMES, FULL, HEAD, MINI, ROLES, cropCells, poseOf, robotGrid, robotSvg, roleOf } from './robots'
 import type { Pose, Role } from './robots'
 import { astroGrid } from './astronauts'
-import { catGrid } from './cats'
+import { catGrid, catGridFull } from './cats'
 import { THEMES, bandCatSvg, themeNamed, bannerSvg, barFrame, barSvg, figureName, rowBarSvg, figureStillSvg, figureSvg, robotCells, skinNamed, stageAgents } from './stage'
 
 const RUN: StageRun = {
@@ -71,12 +71,12 @@ test('every office cat role and pose draws a full grid, and its SVG fits the Svg
   }
 })
 
-test('each cat looks like no other; walking, done, failed and idle loops each differ', async () => {
+test('each cat looks like no other; each of its five loops differs', async () => {
   const loop = (role: Role, pose: Pose) => JSON.stringify([0, 1, 2, 3].map(f => catGrid(role, pose, f)))
   expect(new Set(ALL_ROLES.map(role => JSON.stringify(catGrid(role, 'walk', 0)))).size).toBe(ALL_ROLES.length)
-  for (const role of ALL_ROLES) expect(new Set((['walk', 'done', 'fail', 'idle'] as const).map(pose => loop(role, pose))).size).toBe(4)
-  // thinking is the file's blink, which steps through the same takes as the walk
-  expect(loop('coder', 'think')).toBe(loop('coder', 'walk'))
+  for (const role of ALL_ROLES) expect(new Set(ALL_POSES.map(pose => loop(role, pose))).size).toBe(5)
+  // thinking sits still under a thought bubble whose dots fill in
+  expect(JSON.stringify(catGridFull('coder', 'think', 0))).not.toBe(JSON.stringify(catGridFull('coder', 'think', 3)))
   expect(JSON.stringify(catGrid('coder', 'walk', 0))).not.toBe(JSON.stringify(catGrid('coder', 'walk', 1)))
   expect(figureName('office-cats', 'planner')).toBe('Planner, the blue-grey cat')
 })

@@ -447,7 +447,7 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="row" alignItems="center" gap={1}>
         {skin === 'office-cats'
-          ? <Svg source={bandCatSvg(p, width, theme, cheering && !isLive(r))} alt={label} width={width} height={40} isInteractive />
+          ? <Svg source={bandCatSvg(p, width, theme, cheering && !isLive(r))} alt={label} width={width} height={56} isInteractive />
           : <Svg source={barSvg(p, width, theme)} alt={label} width={width} height={6} isInteractive />}
         <Text dimColor>{label}</Text>
       </Box>
