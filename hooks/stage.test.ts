@@ -272,7 +272,7 @@ test('the desktop row bar slides while a helper works and fills when it is done'
   expect(rowBarSvg(null, 90, '#D9443A')).toContain('<animate attributeName="x"')
   expect(rowBarSvg(0.5, 90, '#D9443A')).toContain('<rect width="45" height="8" rx="4" fill="#D9443A"/>')
   expect(rowBarSvg(1, 90, '#5ba53c')).not.toContain('<animate')
-  const banner = bannerSvg(400, '2 working · <1> done')
+  const banner = bannerSvg(400, '2 working · <1> done', THEMES.matcha)
   expect(banner).toContain('Cat Office')
   expect(banner).toContain('2 working · &lt;1&gt; done')
   expect(banner.length).toBeLessThan(131072)
@@ -424,4 +424,16 @@ test('the matcha greens are the default theme', async () => {
   const svg = bandCatSvg(0.5, 400, THEMES.matcha)
   expect(svg).toContain('stop-color="#a0c18c"')
   expect(svg).toContain('stop-color="#5e9b68"')
+})
+
+test('the pane takes the theme: the header wall, the cats\' backdrop, the row bars', async () => {
+  const banner = bannerSvg(400, 'All quiet', THEMES.matcha)
+  expect(banner).toContain('fill="#ecefd6"') // the cream-green wall
+  expect(banner).toContain('fill="#3d5039"') // forest ink
+  expect(figureStillSvg('office-cats', 'coder', 'idle', '#ecefd6')).toContain('fill="#ecefd6"')
+  expect(figureStillSvg('office-cats', 'coder', 'idle')).toContain('fill="#FBF3EE"') // its own backdrop by default
+  const cards = buildCards(RUN, 10_000, false, THEMES.matcha, 0.5)
+  expect(cards[0]?.barColor).toBe('#5e9b68')
+  expect(cards[1]?.statusColor).toBe('#5e9b68') // a helper at work: the theme's green, not its role color
+  expect(rowBarSvg(null, 90, '#5e9b68', '#e2e6cc')).toContain('fill="#e2e6cc"')
 })

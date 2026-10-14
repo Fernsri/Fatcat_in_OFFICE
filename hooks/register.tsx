@@ -9,7 +9,7 @@ import { progressOf } from './progress'
 import { cropCells, FRAME_MS, FRAMES, ROLES } from './robots'
 import type { Crop, Pose } from './robots'
 import { startTurn } from './run'
-import { bandCatSvg, bannerSvg, barFrame, barSvg, barTheme, figureName, figureStillSvg, figureSvg, robotCells, rowBarSvg, skinNamed, themeNamed, THEMES } from './stage'
+import { bandCatSvg, bannerSvg, barFrame, barSvg, barTheme, figureName, figureStillSvg, figureSvg, mix, robotCells, rowBarSvg, skinNamed, themeNamed, THEMES } from './stage'
 import type { Skin, Theme } from './stage'
 
 const PANE = 'agent-office-cats'
@@ -61,6 +61,11 @@ let cheerUntil = 0 // after an answer, the desktop band's cat cheers until then
 
 /** How long the cat cheers after an answer, before the band goes. */
 const CHEER_MS = 2500
+
+/** The cats' backdrop: the theme's paper; the other skins keep their own. */
+function catPaper(): string | undefined {
+  return skin === 'office-cats' ? hex(theme.paper) : undefined
+}
 
 /** Progress as the bar shows it: never lower than it already showed this turn. */
 function shownProgress(run: StageRun): number {
@@ -116,7 +121,7 @@ function paint($: EngineInterface) {
     for (const key of pane?.crop ? pane.keys : []) {
       const who = robotOf(snap, key, nowMs)
       if (!who || !pane?.crop) continue
-      const cells = robotCells(who.role, who.pose, frame, pane.crop, transparent, skin)
+      const cells = robotCells(who.role, who.pose, frame, pane.crop, transparent, skin, catPaper())
       void $.ui.blit({ requestId: PANE, key: `bot-${key}`, cells }).then(r => {
         if (r.deny) pane = null // closed or redrawn: the next render re-seats it
       })
@@ -294,6 +299,7 @@ export const register: Register = (on, options) => {
     drawnSig = visibleSig(r, now, p, theme)
     const cards = buildCards(r, now, e.surface === 'terminal', theme, p)
     const summary = officeSummary(cards)
+    const paper = catPaper()
 
     if (e.surface === 'terminal') {
       // Each row: the small figure, then the title, the status and what it is
@@ -321,7 +327,7 @@ export const register: Register = (on, options) => {
                       key={`bot-${card.key}`}
                       columns={art.columns}
                       rows={art.rows}
-                      cells={robotCells(card.robot.role, card.robot.pose, frame, figure, transparent, skin)}
+                      cells={robotCells(card.robot.role, card.robot.pose, frame, figure, transparent, skin, paper)}
                     />
                   </Box>
                 ) : null}
@@ -351,20 +357,20 @@ export const register: Register = (on, options) => {
     const width = clamp(e.props.bodyColumns * 8, 240, 720)
     return (
       <Box flexDirection="column" gap={1}>
-        <Svg source={bannerSvg(width, summary)} alt={`Cat Office: ${summary}`} width={width} height={56} />
+        <Svg source={bannerSvg(width, summary, theme)} alt={`Cat Office: ${summary}`} width={width} height={56} />
         {cards.map(card => {
           const role = ROLES[card.robot.role]
           const moving = card.live && animated(card.robot.pose)
           return (
             <Box key={card.key} flexDirection="row" alignItems="center" gap={1}>
               <Svg
-                source={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 52" width="4" height="52"><rect width="4" height="52" rx="2" fill="${card.live ? role.color : '#CFC8C2'}"/></svg>`}
+                source={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 52" width="4" height="52"><rect width="4" height="52" rx="2" fill="${card.live ? hex(theme.main) : '#CFC8C2'}"/></svg>`}
                 alt={card.live ? 'at work' : 'resting'}
                 width={4}
                 height={52}
               />
               <Svg
-                source={moving ? figureSvg(skin, card.robot.role, card.robot.pose) : figureStillSvg(skin, card.robot.role, card.robot.pose)}
+                source={moving ? figureSvg(skin, card.robot.role, card.robot.pose, paper) : figureStillSvg(skin, card.robot.role, card.robot.pose, paper)}
                 alt={`${figureName(skin, card.robot.role)}, ${POSE_WORDS[card.robot.pose]}`}
                 width={52}
                 height={52}
@@ -382,7 +388,7 @@ export const register: Register = (on, options) => {
               </Box>
               <Box flexShrink={0}>
                 <Svg
-                  source={rowBarSvg(card.bar === null ? null : Math.round(card.bar * 100) / 100, 90, card.barColor)}
+                  source={rowBarSvg(card.bar === null ? null : Math.round(card.bar * 100) / 100, 90, card.barColor, hex(mix(theme.paper, theme.ink, 0.07)))}
                   alt={card.bar === null ? 'working' : `${Math.round(card.bar * 100)}%`}
                   width={90}
                   height={8}

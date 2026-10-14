@@ -4,7 +4,7 @@
 
 import type { StageRun } from '../types'
 import { cleanTask } from './activity'
-import { poseOf, ROLES, roleOf } from './robots'
+import { poseOf, roleOf } from './robots'
 import type { Pose, Role } from './robots'
 import { stageAgents } from './stage'
 import type { Theme } from './stage'
@@ -65,20 +65,20 @@ export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Th
     title: request ?? (r.isWorking ? 'Leading the team' : 'Waiting for your next request'),
     live: r.isWorking,
     status: !r.isWorking ? '○ Waiting for you' : mainQuiet ? `◐ Thinking${elapsed(r.turnStartedAt)}` : `● Working${elapsed(r.turnStartedAt)}`,
-    statusColor: r.isWorking ? ROLES.lead.color : done,
+    statusColor: r.isWorking ? hex(theme.main) : done,
     doing: !r.isWorking
       ? r.mainDoing ? `Last: ${r.mainDoing}` : 'Ready for your next request'
       : mainQuiet
         ? r.mainDoing ? `Last: ${r.mainDoing}` : 'Reading your request'
         : r.mainDoing || 'Working',
     bar: p,
-    barColor: r.isWorking ? ROLES.lead.color : done,
+    barColor: r.isWorking ? hex(theme.main) : done,
     robot: robotOf(r, 'main', now) ?? { role: 'lead', pose: 'idle' },
   }
 
   const agents = stageAgents(r).map((a): Card => {
     const quiet = isQuiet(a.activity, a.lastActiveAt ?? a.startedAt, now)
-    const color = a.status === 'failed' ? hex(theme.failed) : a.status === 'done' ? done : ROLES[roleOf(a.type, a.label)].color
+    const color = a.status === 'failed' ? hex(theme.failed) : a.status === 'done' ? done : hex(theme.main)
     return {
       key: a.id,
       title: `Task ${r.agents.indexOf(a) + 1}: ${a.label}`,

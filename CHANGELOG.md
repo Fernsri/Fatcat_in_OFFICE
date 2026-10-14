@@ -4,6 +4,13 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.11.0 (2026-10-14)
+
+**The whole pane in the theme.**
+
+- Each theme now has a paper and an ink color. With `matcha` the Cat Office header's wall and the cats' backdrop are cream green (#ECEFD6) and its words forest green (#3D5039).
+- The row bars, the stripe beside a working row and the working status take the theme's color instead of the role's; done stays the theme's done color and an error stays red. Role names and the cats' overalls keep their role colors, so you can still tell who is who.
+
 ## 0.10.0 (2026-10-14)
 
 **Soft greens.**

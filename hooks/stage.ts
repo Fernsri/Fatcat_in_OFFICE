@@ -14,7 +14,7 @@ export type Skin = 'office-cats' | 'robots' | 'space-crew'
 type Grid = (string | null)[][]
 
 /** Everything a skin draws with: its frames, its animated SVG, its backdrop and its figures' names. */
-const SKINS: Record<Skin, { grid: (role: Role, pose: Pose, frame: number) => Grid; svg: (role: Role, pose: Pose) => string; backdrop: string; name: (role: Role) => string }> = {
+const SKINS: Record<Skin, { grid: (role: Role, pose: Pose, frame: number) => Grid; svg: (role: Role, pose: Pose, backdrop?: string) => string; backdrop: string; name: (role: Role) => string }> = {
   'office-cats': { grid: catGrid, svg: catSvg, backdrop: OFFICE, name: role => `${ROLES[role].label}, the ${CATS[role].kind}` },
   robots: { grid: robotGrid, svg: robotSvg, backdrop: BACKDROP, name: role => `${ROLES[role].label} robot` },
   'space-crew': { grid: astroGrid, svg: astroSvg, backdrop: SPACE, name: role => `${ROLES[role].label}, the ${LOOKS[role].kind.toLowerCase()}` },
@@ -30,9 +30,9 @@ export function figureName(skin: Skin, role: Role): string {
   return SKINS[skin].name(role)
 }
 
-/** One role and pose as a self-animating SVG, for the desktop and other remote surfaces. */
-export function figureSvg(skin: Skin, role: Role, pose: Pose): string {
-  return SKINS[skin].svg(role, pose)
+/** One role and pose as a self-animating SVG, for the desktop and other remote surfaces; `backdrop` replaces the skin's own. */
+export function figureSvg(skin: Skin, role: Role, pose: Pose, backdrop?: string): string {
+  return SKINS[skin].svg(role, pose, backdrop)
 }
 
 /**
@@ -40,8 +40,7 @@ export function figureSvg(skin: Skin, role: Role, pose: Pose): string {
  * a plain image, it stays put when the pane redraws, where an animated drawing
  * restarts; used for figures that are done, failed or idle.
  */
-export function figureStillSvg(skin: Skin, role: Role, pose: Pose): string {
-  const backdrop = SKINS[skin].backdrop
+export function figureStillSvg(skin: Skin, role: Role, pose: Pose, backdrop = SKINS[skin].backdrop): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges"><rect width="32" height="32" fill="${backdrop}"/>${gridPaths(SKINS[skin].grid(role, pose, 0))}</svg>`
 }
 
@@ -69,14 +68,18 @@ export type Theme = {
   barFrom: number
   barTo: number
   barEmpty: number
+  /** The light surface: the pane header's wall, the cats' backdrop, the row bars' track. */
+  paper: number
+  /** Lines and words drawn on the paper. */
+  ink: number
 }
 
 export const THEMES = {
-  neon: { main: 0x8b5cf6, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0x8b5cf6, barTo: 0x22d3ee, barEmpty: 0x3f3f46 },
-  ocean: { main: 0x0ea5e9, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0x0369a1, barTo: 0x2dd4bf, barEmpty: 0x334155 },
-  sunset: { main: 0xdc2626, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0xf43f5e, barTo: 0xfacc15, barEmpty: 0x44403c },
-  matcha: { main: 0x5e9b68, done: 0x5e9b68, failed: 0xe5534b, barFrom: 0xa0c18c, barTo: 0x5e9b68, barEmpty: 0x3d5039 },
-  mono: { main: 0x9ca3af, done: 0xa3a3a3, failed: 0xd4d4d4, barFrom: 0x737373, barTo: 0xfafafa, barEmpty: 0x2e2e2e },
+  neon: { main: 0x8b5cf6, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0x8b5cf6, barTo: 0x22d3ee, barEmpty: 0x3f3f46, paper: 0xfbf3ee, ink: 0x2a2238 },
+  ocean: { main: 0x0ea5e9, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0x0369a1, barTo: 0x2dd4bf, barEmpty: 0x334155, paper: 0xfbf3ee, ink: 0x2a2238 },
+  sunset: { main: 0xdc2626, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0xf43f5e, barTo: 0xfacc15, barEmpty: 0x44403c, paper: 0xfbf3ee, ink: 0x2a2238 },
+  matcha: { main: 0x5e9b68, done: 0x5e9b68, failed: 0xe5534b, barFrom: 0xa0c18c, barTo: 0x5e9b68, barEmpty: 0x3d5039, paper: 0xecefd6, ink: 0x3d5039 },
+  mono: { main: 0x9ca3af, done: 0xa3a3a3, failed: 0xd4d4d4, barFrom: 0x737373, barTo: 0xfafafa, barEmpty: 0x2e2e2e, paper: 0xf2f2f2, ink: 0x2e2e2e },
 } satisfies Record<string, Theme>
 
 /** The theme a config value names, matcha when it names none. */
@@ -141,11 +144,11 @@ const toNum = (c: string | null, backdrop: number) => (c ? parseInt(c.slice(1), 
  * `transparent` leaves the backdrop to the terminal instead of the skin's own
  * (an office wall for the cats, beige for the robots, deep space for the crew).
  */
-export function robotCells(role: Role, pose: Pose, frame: number, crop: Crop, transparent = false, skin: Skin = 'robots'): string {
+export function robotCells(role: Role, pose: Pose, frame: number, crop: Crop, transparent = false, skin: Skin = 'robots', backdrop = SKINS[skin].backdrop): string {
   const full = SKINS[skin].grid(role, pose, frame)
   const grid = crop.half ? halfGrid(full) : full
   const s = crop.half ? 2 : 1
-  const back = transparent ? NONE : parseInt(SKINS[skin].backdrop.slice(1), 16)
+  const back = transparent ? NONE : parseInt(backdrop.slice(1), 16)
   const { columns, rows } = cropCells(crop)
   const x0 = crop.x / s
   const y0 = crop.y / s
@@ -258,34 +261,35 @@ export function barTheme(theme: Theme, color: string): Theme {
  * row's color, or, for `p === null` (a helper at work, nobody knows how far
  * along), a short segment sliding back and forth.
  */
-export function rowBarSvg(p: number | null, width: number, color: string): string {
+export function rowBarSvg(p: number | null, width: number, color: string, track = '#ECE6E0'): string {
   const H = 8
-  const track = `<rect width="${width}" height="${H}" rx="${H / 2}" fill="#ECE6E0"/>`
+  const groove = `<rect width="${width}" height="${H}" rx="${H / 2}" fill="${track}"/>`
   const body = p === null
     ? `<rect width="${Math.round(width / 3)}" height="${H}" rx="${H / 2}" fill="${color}">`
       + `<animate attributeName="x" values="0;${width - Math.round(width / 3)};0" dur="1.6s" repeatCount="indefinite"/></rect>`
     : `<rect width="${Math.round(Math.max(0, Math.min(1, p)) * width)}" height="${H}" rx="${H / 2}" fill="${color}"/>`
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}">${track}${body}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}">${groove}${body}</svg>`
 }
 
 /**
  * The pane's header on the desktop: a little pixel office (two windows, a
  * plant, a clock) with the title and a summary on the wall.
  */
-export function bannerSvg(width: number, summary: string): string {
+export function bannerSvg(width: number, summary: string, theme: Theme): string {
   const H = 56
-  const INK = '#2A2238'
+  const hx = (n: number) => '#' + n.toString(16).padStart(6, '0')
+  const INK = hx(theme.ink)
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   const window = (x: number) => `<rect x="${x}" y="10" width="44" height="30" fill="#BFE3F5" stroke="${INK}" stroke-width="3"/>`
     + `<line x1="${x + 22}" y1="10" x2="${x + 22}" y2="40" stroke="${INK}" stroke-width="2"/>`
     + `<rect x="${x + 4}" y="14" width="8" height="4" fill="#FFFFFF"/>`
   const right = width - 24
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}" shape-rendering="crispEdges">`
-    + `<rect width="${width}" height="${H}" fill="#FBF3EE"/>`
-    + `<rect y="${H - 6}" width="${width}" height="6" fill="#E9DCCF"/><rect y="${H - 6}" width="${width}" height="2" fill="${INK}"/>`
+    + `<rect width="${width}" height="${H}" fill="${hx(theme.paper)}"/>`
+    + `<rect y="${H - 6}" width="${width}" height="6" fill="${hx(mix(theme.paper, theme.ink, 0.12))}"/><rect y="${H - 6}" width="${width}" height="2" fill="${INK}"/>`
     + window(12) + window(64)
     + `<text x="124" y="27" font-family="system-ui, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="${INK}">Cat Office</text>`
-    + `<text x="124" y="44" font-family="system-ui, 'Segoe UI', sans-serif" font-size="12" fill="#6D6776">${esc(summary)}</text>`
+    + `<text x="124" y="44" font-family="system-ui, 'Segoe UI', sans-serif" font-size="12" fill="${hx(mix(theme.ink, theme.paper, 0.35))}">${esc(summary)}</text>`
     + (width >= 300
       ? `<circle cx="${right - 34}" cy="20" r="9" fill="#FFFFFF" stroke="${INK}" stroke-width="2"/><line x1="${right - 34}" y1="20" x2="${right - 34}" y2="14" stroke="${INK}" stroke-width="2"/><line x1="${right - 34}" y1="20" x2="${right - 30}" y2="20" stroke="${INK}" stroke-width="2"/>`
         + `<rect x="${right - 4}" y="${H - 18}" width="12" height="12" fill="#C9844F" stroke="${INK}" stroke-width="2"/>`
