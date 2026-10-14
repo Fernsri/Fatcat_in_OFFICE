@@ -4,6 +4,14 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.17.0 (2026-10-15)
+
+**The whole team, day and night.**
+
+- All seven cats are always in the Cat Office, one row each in a fixed order: Team Lead, Planner, Researcher, Coder, Tester, Reviewer, Designer. A cat with no job sleeps (Zzz) in a dimmed row, "Napping · no job yet", and wakes when Claude hands its role a job. Several jobs for one role show the latest with "×2". The summary counts the nappers: `2 working · 1 done · 4 napping`.
+- Dark mode: each theme has a dark paper and light ink, so the header, the cats' backdrop and the tracks never glare on a dark screen. New setting `appearance`: `auto` (follow Claude's theme setting, live), `light` or `dark`.
+- The Tester is a plain gray cat (the blue-gray cat turned gray).
+
 ## 0.16.0 (2026-10-15)
 
 **A thinking cat, and a sharper walker.**

@@ -11,7 +11,7 @@ import { progressOf } from './progress'
 import { cropCells, FRAME_MS, FRAMES, ROLES } from './robots'
 import type { Crop, Pose } from './robots'
 import { startTurn } from './run'
-import { bandCatSvg, bannerSvg, barFrame, barSvg, barTheme, figureName, figureStillSvg, figureSvg, mix, robotCells, rowBarSvg, skinNamed, themeNamed, THEMES } from './stage'
+import { bandCatSvg, bannerSvg, themeAfterDark, barFrame, barSvg, barTheme, figureName, figureStillSvg, figureSvg, mix, robotCells, rowBarSvg, skinNamed, themeNamed, THEMES } from './stage'
 import type { Skin, Theme } from './stage'
 
 const PANE = 'agent-office-cats'
@@ -41,6 +41,18 @@ const POSE_WORDS: Record<Pose, string> = { walk: 'at work', think: 'thinking', d
 // pane and the band) is brought up to date at most every REDRAW_MS, and only
 // when something on screen would change, so a burst of updates is one redraw.
 let theme: Theme = THEMES.matcha
+let lightTheme: Theme = THEMES.matcha
+let appearance: 'auto' | 'light' | 'dark' = 'auto'
+
+/** With appearance auto, follows Claude's own theme setting: a theme named dark-anything means a dark screen. */
+async function followClaudeTheme($: EngineInterface) {
+  if (appearance !== 'auto') return
+  try {
+    const row = (await $.config.list()).find(row => row.key === 'theme')
+    const dark = /dark/i.test(String(row?.value ?? ''))
+    theme = dark ? themeAfterDark(lightTheme) : lightTheme
+  } catch { theme = lightTheme }
+}
 let fps = 12
 let frameMs = 83
 let transparent = false
@@ -169,7 +181,9 @@ function ensureLoop($: EngineInterface) {
 }
 
 export const register: Register = (on, options) => {
-  theme = themeNamed(String(options.theme))
+  lightTheme = themeNamed(String(options.theme))
+  appearance = options.appearance === 'light' || options.appearance === 'dark' ? options.appearance : 'auto'
+  theme = appearance === 'dark' ? themeAfterDark(lightTheme) : lightTheme
   fps = clamp(Number(options.fps) || 12, 4, 30)
   frameMs = Math.round(1000 / fps)
   transparent = options.backdrop === 'terminal'
@@ -181,6 +195,7 @@ export const register: Register = (on, options) => {
   snapLive = false
 
   on('session.start', async ($, e, next) => {
+    await followClaudeTheme($)
     await $.command.register({ name: 'office', description: 'Open the Cat Office: Claude and its helpers at work' })
     snap = await read($, runAtom)
     snapLive = true
@@ -193,6 +208,14 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'office' }, async $ => {
     await $.ui.open({ id: PANE, title: 'Cat Office' })
     return { text: 'Cat Office opened.' }
+  })
+
+  // the theme changed in /config: follow it at once
+  on('config.set', { key: 'theme' }, async ($, e, next) => {
+    const result = await next(e)
+    await followClaudeTheme($).catch(() => {})
+    $.ui.invalidate('ui.render')
+    return result
   })
 
   on('session.end', async ($, e, next) => {
@@ -343,7 +366,7 @@ export const register: Register = (on, options) => {
                 <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
                   <Box flexDirection="row" gap={1}>
                     <Box flexShrink={0}><Text bold color={role.color}>{role.label}</Text></Box>
-                    <Box flexGrow={1} flexShrink={1} minWidth={0}><Text wrap="truncate-end">{card.title}</Text></Box>
+                    <Box flexGrow={1} flexShrink={1} minWidth={0}><Text dimColor={card.key.startsWith('role:')} wrap="truncate-end">{card.title}</Text></Box>
                   </Box>
                   <Box flexDirection="row" gap={1}>
                     <Box flexShrink={0}><Text color={card.statusColor}>{card.status}</Text></Box>
@@ -388,7 +411,7 @@ export const register: Register = (on, options) => {
               <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
                 <Box flexDirection="row" gap={1}>
                   <Box flexShrink={0}><Text bold color={role.color}>{role.label}</Text></Box>
-                  <Box flexGrow={1} flexShrink={1} minWidth={0}><Text wrap="truncate-end">{card.title}</Text></Box>
+                  <Box flexGrow={1} flexShrink={1} minWidth={0}><Text dimColor={card.key.startsWith('role:')} wrap="truncate-end">{card.title}</Text></Box>
                 </Box>
                 <Box flexDirection="row" gap={1}>
                   <Box flexShrink={0}><Text color={card.statusColor}>{card.status}</Text></Box>

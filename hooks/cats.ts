@@ -19,7 +19,7 @@ export const CATS: Record<Role, { kind: string }> = {
   lead: { kind: 'orange tabby' },
   planner: { kind: 'blue-grey cat' },
   researcher: { kind: 'cream white cat' },
-  tester: { kind: 'pink calico' },
+  tester: { kind: 'gray cat' },
   coder: { kind: 'golden cat' },
   reviewer: { kind: 'siamese cat' },
   designer: { kind: 'pink-and-white cat' },

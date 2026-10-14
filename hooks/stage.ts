@@ -99,6 +99,22 @@ export const THEMES = {
 } satisfies Record<string, Theme>
 
 /** The theme a config value names, matcha when it names none. */
+/** Paper and ink for each theme after dark: a deep tone of the theme for the paper, its light paper for the ink. */
+const NIGHT: Record<string, { paper: number; ink: number }> = {
+  matcha: { paper: 0x2b3325, ink: 0xecefd6 },
+  neon: { paper: 0x221d33, ink: 0xf2ecff },
+  ocean: { paper: 0x14222e, ink: 0xe3f2fb },
+  sunset: { paper: 0x2e1f1d, ink: 0xfbeee6 },
+  mono: { paper: 0x232323, ink: 0xf2f2f2 },
+}
+
+/** A theme for a dark screen: the same colors, with dark paper and light ink, so nothing glares. */
+export function themeAfterDark(theme: Theme): Theme {
+  const name = Object.entries(THEMES).find(([, t]) => t === theme)?.[0] ?? ''
+  const night = NIGHT[name] ?? { paper: mix(theme.ink, 0x000000, 0.4), ink: theme.paper }
+  return { ...theme, ...night }
+}
+
 export function themeNamed(name: string): Theme {
   return (THEMES as Record<string, Theme>)[name] ?? THEMES.matcha
 }

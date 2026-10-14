@@ -6,7 +6,6 @@ import type { StageRun } from '../types'
 import { cleanTask } from './activity'
 import { poseOf, roleOf } from './robots'
 import type { Pose, Role } from './robots'
-import { stageAgents } from './stage'
 import type { Theme } from './stage'
 
 /** A gap this long with no tool call reads as thinking; shorter gaps between calls stay working. */
@@ -23,6 +22,7 @@ export function robotOf(run: StageRun, key: string, now: number): { role: Role; 
     if (!run.isWorking) return { role: 'lead', pose: 'idle' }
     return { role: 'lead', pose: isQuiet(run.mainActivity, run.mainActiveAt ?? run.turnStartedAt, now) ? 'think' : 'walk' }
   }
+  if (key.startsWith('role:')) return { role: key.slice(5) as Role, pose: 'idle' } // a cat with no job: asleep
   const agent = run.agents.find(a => a.id === key)
   if (!agent) return null
   const pose = poseOf(agent.activity, agent.status)
@@ -53,6 +53,9 @@ const shorten = (text: string, n: number) => (text.length > n ? text.slice(0, n 
  * them cheaply every second; elsewhere a ticking number would rebuild the
  * drawings each second, so running rows show none and finished ones their time.
  */
+/** The helpers' rows, one per role, always in this order under the lead's. */
+export const ROW_ROLES: Role[] = ['planner', 'researcher', 'coder', 'tester', 'reviewer', 'designer']
+
 export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Theme, p: number): Card[] {
   const secs = (from: number, to: number | null) => Math.max(0, Math.round(((to ?? now) - from) / 1000))
   const elapsed = (from: number) => (ticking ? ` · ${secs(from, null)} sec` : '')
@@ -76,12 +79,30 @@ export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Th
     robot: robotOf(r, 'main', now) ?? { role: 'lead', pose: 'idle' },
   }
 
-  const agents = stageAgents(r).map((a): Card => {
+  // Every role keeps its own row, in a fixed order: its latest job (running ones first), or asleep with none.
+  const agents = ROW_ROLES.map((role): Card => {
+    const mine = r.agents.filter(a => roleOf(a.type, a.label) === role)
+    const running = mine.filter(a => a.status === 'running')
+    const a = running.at(-1) ?? mine.at(-1)
+    if (!a) {
+      return {
+        key: `role:${role}`,
+        title: 'Napping · no job yet',
+        live: false,
+        status: '○ Asleep',
+        statusColor: '#9a958f',
+        doing: 'Wakes up when Claude hands it a job',
+        bar: 0,
+        barColor: '#cfc8c2',
+        robot: { role, pose: 'idle' },
+      }
+    }
+    const more = running.length > 1 ? ` ×${running.length}` : ''
     const quiet = isQuiet(a.activity, a.lastActiveAt ?? a.startedAt, now)
     const color = a.status === 'failed' ? hex(theme.failed) : a.status === 'done' ? done : hex(theme.main)
     return {
       key: a.id,
-      title: `Task ${r.agents.indexOf(a) + 1}: ${a.label}`,
+      title: `Task ${r.agents.indexOf(a) + 1}: ${a.label}${more}`,
       live: a.status === 'running',
       status: a.status === 'done'
         ? `✓ Done (${secs(a.startedAt, a.endedAt)} sec)`
@@ -100,12 +121,13 @@ export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Th
   return [lead, ...agents]
 }
 
-/** The words under the pane's title: "2 working · 1 done", "1 error". */
+/** The words under the pane's title: "2 working · 1 done · 4 napping", "1 error". */
 export function officeSummary(cards: readonly Card[]): string {
   const working = cards.filter(c => c.live).length
   const done = cards.filter(c => c.key !== 'main' && c.status.startsWith('✓')).length
+  const asleep = cards.filter(c => c.key.startsWith('role:')).length
   const errors = cards.filter(c => c.status.startsWith('✗')).length
-  const parts = [working ? `${working} working` : '', done ? `${done} done` : '', errors ? `${errors} error${errors === 1 ? '' : 's'}` : '']
+  const parts = [working ? `${working} working` : '', done ? `${done} done` : '', errors ? `${errors} error${errors === 1 ? '' : 's'}` : '', asleep && (working || done || errors) ? `${asleep} napping` : '']
   return parts.filter(Boolean).join(' · ') || 'All quiet · nap time'
 }
 
