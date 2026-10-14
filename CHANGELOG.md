@@ -4,6 +4,13 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.10.0 (2026-10-14)
+
+**Soft greens.**
+
+- A new theme, `matcha`, and the new default: the progress bar runs from a soft sage (#A0C18C) to a leaf green (#5E9B68) over a deep forest track (#3D5039), in the terminal and on the desktop. The header and the done color take the leaf green.
+- `neon`, `ocean`, `sunset` and `mono` are still a setting away.
+
 ## 0.9.0 (2026-10-14)
 
 **A cat walks the progress bar.**

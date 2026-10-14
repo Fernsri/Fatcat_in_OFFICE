@@ -57,7 +57,7 @@ Set them with `/plugin configure agent-office-cats@jitapa-mods` in a terminal se
 | --- | --- | --- |
 | `skin` | `office-cats`, `space-crew`, `robots` | `office-cats` |
 | `backdrop` | `skin` (the figures' own), `terminal` (your terminal's background) | `skin` |
-| `theme` | `neon`, `ocean`, `sunset`, `mono` (header and bar colors) | `neon` |
+| `theme` | `matcha` (soft greens), `neon`, `ocean`, `sunset`, `mono` (header and bar colors) | `matcha` |
 | `fps` | 4 to 30, how often the terminal repaints | `12` |
 | `autoOpenPane` | open the pane when a session starts | `true` |
 

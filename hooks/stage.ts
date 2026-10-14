@@ -75,12 +75,13 @@ export const THEMES = {
   neon: { main: 0x8b5cf6, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0x8b5cf6, barTo: 0x22d3ee, barEmpty: 0x3f3f46 },
   ocean: { main: 0x0ea5e9, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0x0369a1, barTo: 0x2dd4bf, barEmpty: 0x334155 },
   sunset: { main: 0xdc2626, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0xf43f5e, barTo: 0xfacc15, barEmpty: 0x44403c },
+  matcha: { main: 0x5e9b68, done: 0x5e9b68, failed: 0xe5534b, barFrom: 0xa0c18c, barTo: 0x5e9b68, barEmpty: 0x3d5039 },
   mono: { main: 0x9ca3af, done: 0xa3a3a3, failed: 0xd4d4d4, barFrom: 0x737373, barTo: 0xfafafa, barEmpty: 0x2e2e2e },
 } satisfies Record<string, Theme>
 
-/** The theme a config value names, neon when it names none. */
+/** The theme a config value names, matcha when it names none. */
 export function themeNamed(name: string): Theme {
-  return (THEMES as Record<string, Theme>)[name] ?? THEMES.neon
+  return (THEMES as Record<string, Theme>)[name] ?? THEMES.matcha
 }
 
 /** Which agents get a card: running ones first, then the most recent, at most 6. */

@@ -10,7 +10,7 @@ import { BUST, FRAMES, FULL, HEAD, MINI, ROLES, cropCells, poseOf, robotGrid, ro
 import type { Pose, Role } from './robots'
 import { astroGrid } from './astronauts'
 import { catGrid } from './cats'
-import { THEMES, bandCatSvg, bannerSvg, barFrame, barSvg, figureName, rowBarSvg, figureStillSvg, figureSvg, robotCells, skinNamed, stageAgents } from './stage'
+import { THEMES, bandCatSvg, themeNamed, bannerSvg, barFrame, barSvg, figureName, rowBarSvg, figureStillSvg, figureSvg, robotCells, skinNamed, stageAgents } from './stage'
 
 const RUN: StageRun = {
   isWorking: true,
@@ -416,4 +416,12 @@ test('after an answer the desktop band cheers a moment, then goes; the terminal 
   band = await mount('desktop')
   expect(await band.find({ type: 'Text', text: /All done/ })).toBeUndefined()
   await band.unmount()
+})
+
+test('the matcha greens are the default theme', async () => {
+  expect(themeNamed('')).toBe(THEMES.matcha)
+  expect(themeNamed('neon')).toBe(THEMES.neon)
+  const svg = bandCatSvg(0.5, 400, THEMES.matcha)
+  expect(svg).toContain('stop-color="#a0c18c"')
+  expect(svg).toContain('stop-color="#5e9b68"')
 })

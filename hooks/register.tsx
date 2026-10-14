@@ -38,7 +38,7 @@ const POSE_WORDS: Record<Pose, string> = { walk: 'at work', think: 'thinking', d
 // copy in $.state (which survives a hot reload, and whose writes redraw the
 // pane and the band) is brought up to date at most every REDRAW_MS, and only
 // when something on screen would change, so a burst of updates is one redraw.
-let theme: Theme = THEMES.neon
+let theme: Theme = THEMES.matcha
 let fps = 12
 let frameMs = 83
 let transparent = false
