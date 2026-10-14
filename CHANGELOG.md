@@ -4,6 +4,14 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.9.0 (2026-10-14)
+
+**A cat walks the progress bar.**
+
+- Desktop, with the office cats: the bar above the prompt is taller, and a little orange tabby in a suit walks at its tip toward a fish waiting at the end, blinking now and then.
+- After an answer the band stays 2.5 seconds: the bar full, the fish gone, the cat cheering with hearts rising, and "All done!" beside it. Then it goes.
+- The terminal bar is unchanged, and so is the desktop bar with the robots or the space crew.
+
 ## 0.8.0 (2026-10-14)
 
 **The Cat Office: a compact layout and plain words.**

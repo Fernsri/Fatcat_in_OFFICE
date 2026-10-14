@@ -34,7 +34,7 @@ in the desktop app's Code tab.
 
   Figures walk while working, think after a quiet spell, cheer when done and slump on failure.
 - **Small in the terminal.** Each row's figure is head and shoulders at half size; a pane too narrow for it shows the text alone, and more rows than fit scroll.
-- **A progress bar** above the prompt: done tasks over all tasks when Claude keeps a plan, else finished subagents over all, else an estimate from tool calls. It only moves forward during a turn and holds at 95% until the turn is done.
+- **A progress bar** above the prompt (on the desktop with the office cats, a little cat walks it toward a fish, and cheers for a moment after an answer): done tasks over all tasks when Claude keeps a plan, else finished subagents over all, else an estimate from tool calls. It only moves forward during a turn and holds at 95% until the turn is done.
 
 ## Install
 

@@ -10,7 +10,7 @@ import { BUST, FRAMES, FULL, HEAD, MINI, ROLES, cropCells, poseOf, robotGrid, ro
 import type { Pose, Role } from './robots'
 import { astroGrid } from './astronauts'
 import { catGrid } from './cats'
-import { THEMES, bannerSvg, barFrame, barSvg, figureName, rowBarSvg, figureStillSvg, figureSvg, robotCells, skinNamed, stageAgents } from './stage'
+import { THEMES, bandCatSvg, bannerSvg, barFrame, barSvg, figureName, rowBarSvg, figureStillSvg, figureSvg, robotCells, skinNamed, stageAgents } from './stage'
 
 const RUN: StageRun = {
   isWorking: true,
@@ -379,4 +379,41 @@ test('a terminal row has its figure and its bar, and a narrow pane its text alon
   expect(await narrow.findAll({ type: 'Raster' })).toHaveLength(2) // the bars stay
   expect(await narrow.find({ type: 'Text', text: /Tester/ })).toBeDefined()
   await narrow.unmount()
+})
+
+test('on the desktop the lead cat walks the bar toward a fish, and cheers once it is all done', async () => {
+  const walking = bandCatSvg(0.5, 400, THEMES.neon)
+  expect(walking).toContain('#7FA9D6') // the fish waits at the end
+  expect(walking).toContain('<animate attributeName="visibility"') // the cat steps
+  expect(walking).not.toContain('#F27B93"/></g></g>') // no hearts yet
+  expect(walking.length).toBeLessThan(131072)
+  expect(bandCatSvg(0.501, 400, THEMES.neon)).toBe(walking) // same percent, same drawing: the animation runs on
+  expect(bandCatSvg(0.6, 400, THEMES.neon)).not.toBe(walking)
+  const cheering = bandCatSvg(0.95, 400, THEMES.neon, true)
+  expect(cheering).not.toContain('#7FA9D6') // the fish is eaten
+  expect(cheering).toContain('animateTransform') // hearts rise
+  expect(cheering.length).toBeLessThan(131072)
+})
+
+test('after an answer the desktop band cheers a moment, then goes; the terminal band just goes', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000 })
+  on('turn.start', async (_, e) => ({ turnId: e.turnId }))
+  on('turn.complete', async () => ({ text: '' }))
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e) => $.ui.resolve(e).Box({})) // the engine's own band: empty
+  await $.turn.start({ text: 'make it purr', turnId: 't1' })
+  await $.turn.complete({ answer: 'done', durationMs: 900, isAborted: false, turnId: 't1', reason: 'answer' })
+  const mount = (surface: 'desktop' | 'terminal') => $.ui.mount({
+    plugin: 'agent-office-cats', surface, component: 'AbovePrompt',
+    props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: SCROLL, view: {} },
+  })
+  let band = await mount('desktop')
+  expect(await band.find({ type: 'Text', text: /All done/ })).toBeDefined()
+  await band.unmount()
+  band = await mount('terminal')
+  expect(await band.find({ type: 'Text', text: /All done|%/ })).toBeUndefined()
+  await band.unmount()
+  await clock.advance(3_000)
+  band = await mount('desktop')
+  expect(await band.find({ type: 'Text', text: /All done/ })).toBeUndefined()
+  await band.unmount()
 })

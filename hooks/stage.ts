@@ -5,7 +5,7 @@
 import type { StageAgent, StageRun } from '../types'
 import { astroGrid, astroSvg, LOOKS, SPACE } from './astronauts'
 import { catGrid, catSvg, CATS, OFFICE } from './cats'
-import { BACKDROP, cropCells, halfGrid, ROLES, robotGrid, robotSvg } from './robots'
+import { BACKDROP, cropCells, FRAME_MS, FRAMES, halfGrid, ROLES, robotGrid, robotSvg } from './robots'
 import type { Crop, Pose, Role } from './robots'
 
 /** The looks a figure can have: the office cats, the pixel robots or the space crew. */
@@ -41,8 +41,12 @@ export function figureSvg(skin: Skin, role: Role, pose: Pose): string {
  * restarts; used for figures that are done, failed or idle.
  */
 export function figureStillSvg(skin: Skin, role: Role, pose: Pose): string {
-  const grid = SKINS[skin].grid(role, pose, 0)
   const backdrop = SKINS[skin].backdrop
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges"><rect width="32" height="32" fill="${backdrop}"/>${gridPaths(SKINS[skin].grid(role, pose, 0))}</svg>`
+}
+
+/** A sprite grid as SVG paths, one per color, each run of a row one rectangle; empty cells left out. */
+function gridPaths(grid: Grid): string {
   const byColor = new Map<string, string>()
   grid.forEach((row, y) => {
     let x = 0
@@ -54,8 +58,7 @@ export function figureStillSvg(skin: Skin, role: Role, pose: Pose): string {
       x = end
     }
   })
-  const paths = [...byColor].map(([c, d]) => `<path fill="${c}" d="${d}"/>`).join('')
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges"><rect width="32" height="32" fill="${backdrop}"/>${paths}</svg>`
+  return [...byColor].map(([c, d]) => `<path fill="${c}" d="${d}"/>`).join('')
 }
 
 export type Theme = {
@@ -287,5 +290,125 @@ export function bannerSvg(width: number, summary: string): string {
         + `<rect x="${right - 4}" y="${H - 18}" width="12" height="12" fill="#C9844F" stroke="${INK}" stroke-width="2"/>`
         + `<rect x="${right - 2}" y="${H - 30}" width="8" height="12" fill="#3AA37A" stroke="${INK}" stroke-width="2"/><rect x="${right - 8}" y="${H - 26}" width="6" height="6" fill="#3AA37A" stroke="${INK}" stroke-width="2"/><rect x="${right + 6}" y="${H - 28}" width="6" height="6" fill="#3AA37A" stroke="${INK}" stroke-width="2"/>`
       : '')
+    + '</svg>'
+}
+
+// ── the desktop band for the office cats: the lead cat walking the bar ────────
+
+/** A mackerel facing left, waiting at the end of the bar. */
+const FISH = [
+  '....BBBB......',
+  '..BBBBBBBB..TT',
+  '.BEBBBBBBBBTT.',
+  'BBBBBBBBBBBT..',
+  '.LLLLLLLLLLTT.',
+  '..LLLLLLLL..TT',
+  '....LLLL......',
+]
+const BOUNCE = [0, 1, 2, 2, 2, 1, 0, 0]
+const HEART = ['.X.X.', 'XXXXX', '.XXX.', '..X..']
+const SPRITE_INK = '#2A2238'
+
+/** Rows of characters as a sprite grid in `colors`, outlined in ink for the sticker look. */
+function pixelArt(rows: readonly string[], colors: Record<string, string>): Grid {
+  const h = rows.length + 2
+  const w = (rows[0]?.length ?? 0) + 2
+  const fill = (x: number, y: number) => colors[rows[y - 1]?.[x - 1] ?? '.'] ?? null
+  return Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => {
+    const c = fill(x, y)
+    if (c) return c
+    return fill(x - 1, y) || fill(x + 1, y) || fill(x, y - 1) || fill(x, y + 1) ? SPRITE_INK : null
+  }))
+}
+
+/** The lead cat in small: the orange tabby's head over its suit collar and tie. */
+const WALKER = [
+  '.O.........O.',
+  '.OO.......OO.',
+  '.OPO.....OPO.',
+  'OOOOOROROOOOO',
+  'OOOOOOOOOOOOO',
+  'OOWEOOOOOWEOO',
+  'OOEEOOOOOEEOO',
+  'OKOOOONOOOOKO',
+  'OOOOOMOMOOOOO',
+  '.OOOOCCCOOOO.',
+  '..SSSWTWSSS..',
+]
+const WALKER_COLORS: Record<string, string> = {
+  O: '#F7A03C', R: '#C9651B', P: '#F27B93', W: '#FFFFFF', E: SPRITE_INK, K: '#FF9FB2',
+  N: '#F27B93', M: SPRITE_INK, C: '#FFE3BF', S: '#2C3E66', T: '#2BA4E0',
+}
+
+/** One frame of the walker: a blink now and then while walking; ^ ^ eyes and an open mouth when cheering. */
+function walkerFrame(cheer: boolean, frame: number): Grid {
+  const rows = [...WALKER]
+  if (cheer) {
+    rows[5] = 'OOOEOOOOOEOOO'
+    rows[6] = 'OOEOEOOOEOEOO'
+    rows[8] = 'OOOOOMPMOOOOO'
+  } else if (frame % FRAMES === 6) {
+    rows[5] = 'OOOOOOOOOOOOO'
+  }
+  return pixelArt(rows, WALKER_COLORS)
+}
+
+/**
+ * The progress band on the desktop with the office cats: the bar in the
+ * theme's gradient, the lead cat walking at its tip, and a fish waiting at the
+ * end. `celebrate` is the moment after an answer: the bar full, the cat
+ * cheering where the fish was, hearts rising. 40 px tall.
+ *
+ * Like barSvg, the source depends only on the whole percent, the width and the
+ * theme, so redraws at the same percent leave the animation running.
+ */
+export function bandCatSvg(p: number, width: number, theme: Theme, celebrate = false): string {
+  const c = (n: number) => '#' + n.toString(16).padStart(6, '0')
+  const H = 40, BAR = 8, BAR_Y = 27, CAT_Y = 2, S = 2
+  const percent = celebrate ? 100 : Math.round(Math.max(0, Math.min(1, p)) * 100)
+  const fishW = 16 * S
+  const trackW = width - fishW - 6
+  const filled = Math.round((trackW * percent) / 100)
+  const catW = ((WALKER[0]?.length ?? 0) + 2) * S
+  const catX = celebrate ? width - catW - 4 : Math.max(0, Math.min(trackW - catW, filled - catW / 2))
+  const u = `bc${percent}w${width}${c(theme.barFrom).slice(1)}${c(theme.barTo).slice(1)}${celebrate ? 'c' : ''}`
+
+  const dur = (FRAMES * FRAME_MS) / 1000
+  const cat = Array.from({ length: FRAMES }, (_, k) => {
+    const values = Array.from({ length: FRAMES }, (_, i) => (i === k ? 'visible' : 'hidden')).join(';')
+    return `<g visibility="${k === 0 ? 'visible' : 'hidden'}" transform="translate(${catX} ${CAT_Y + (celebrate ? -(BOUNCE[k] ?? 0) : (k >> 1) % 2)}) scale(${S})">`
+      + `<animate attributeName="visibility" values="${values}" dur="${dur}s" calcMode="discrete" repeatCount="indefinite"/>`
+      + `${gridPaths(walkerFrame(celebrate, k))}</g>`
+  }).join('')
+
+  const fish = celebrate
+    ? ''
+    : `<g transform="translate(${width - fishW} ${BAR_Y + BAR / 2 - 9}) scale(${S})">${gridPaths(pixelArt(FISH, { B: '#7FA9D6', L: '#D3E6F6', E: SPRITE_INK, T: '#5C8CC4' }))}</g>`
+  const hearts = celebrate
+    ? [0, 0.4, 0.8].map((begin, i) => {
+      const x = catX - 6 + i * 12
+      return `<g opacity="0"><animateTransform attributeName="transform" type="translate" values="${x} 14;${x} 0" dur="1.2s" begin="${begin}s" repeatCount="indefinite"/>`
+        + `<animate attributeName="opacity" values="1;0" dur="1.2s" begin="${begin}s" repeatCount="indefinite"/>`
+        + `<g transform="scale(${S})">${gridPaths(pixelArt(HEART, { X: '#F27B93' }))}</g></g>`
+    }).join('')
+    : ''
+
+  const fill = filled > 0
+    ? `<clipPath id="${u}-clip"><rect y="${BAR_Y}" width="${filled}" height="${BAR}" rx="${BAR / 2}"/></clipPath>`
+      + `<g clip-path="url(#${u}-clip)">`
+      + `<rect y="${BAR_Y}" width="${trackW}" height="${BAR}" fill="url(#${u}-fill)"/>`
+      + `<rect y="${BAR_Y}" width="${trackW}" height="${BAR / 2}" fill="#ffffff" opacity="0.18"/>`
+      + `<rect x="-36" y="${BAR_Y}" width="36" height="${BAR}" fill="url(#${u}-shimmer)">`
+      + `<animate attributeName="x" from="-36" to="${filled}" dur="2.4s" repeatCount="indefinite"/></rect></g>`
+    : ''
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}">`
+    + '<defs>'
+    + `<linearGradient id="${u}-fill" x1="0" x2="1"><stop offset="0" stop-color="${c(theme.barFrom)}"/><stop offset="1" stop-color="${c(theme.barTo)}"/></linearGradient>`
+    + `<linearGradient id="${u}-shimmer" x1="0" x2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>`
+    + '</defs>'
+    + `<rect y="${BAR_Y}" width="${trackW}" height="${BAR}" rx="${BAR / 2}" fill="${c(theme.barEmpty)}" fill-opacity="0.35"/>`
+    + fill + fish
+    + `<g shape-rendering="crispEdges">${cat}${hearts}</g>`
     + '</svg>'
 }

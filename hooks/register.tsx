@@ -9,7 +9,7 @@ import { progressOf } from './progress'
 import { cropCells, FRAME_MS, FRAMES, ROLES } from './robots'
 import type { Crop, Pose } from './robots'
 import { startTurn } from './run'
-import { bannerSvg, barFrame, barSvg, barTheme, figureName, figureStillSvg, figureSvg, robotCells, rowBarSvg, skinNamed, themeNamed, THEMES } from './stage'
+import { bandCatSvg, bannerSvg, barFrame, barSvg, barTheme, figureName, figureStillSvg, figureSvg, robotCells, rowBarSvg, skinNamed, themeNamed, THEMES } from './stage'
 import type { Skin, Theme } from './stage'
 
 const PANE = 'agent-office-cats'
@@ -57,6 +57,10 @@ let timer: { cancel: () => void } | null = null
 let pane: { keys: string[]; crop: Crop | null; bars: { key: string; p: number | null; color: string }[]; barColumns: number } | null = null
 let band: { requestId: string; columns: number } | null = null // the terminal bar, painted per frame
 let peak = { turn: -1, p: 0 } // the highest progress shown this turn
+let cheerUntil = 0 // after an answer, the desktop band's cat cheers until then
+
+/** How long the cat cheers after an answer, before the band goes. */
+const CHEER_MS = 2500
 
 /** Progress as the bar shows it: never lower than it already showed this turn. */
 function shownProgress(run: StageRun): number {
@@ -273,6 +277,7 @@ export const register: Register = (on, options) => {
       const status = e.reason === 'answer' ? 'done' : 'failed'
       setAgent($, e.agentId, a => ({ ...a, status, activity: status, endedAt: now }))
     } else {
+      if (e.reason === 'answer') cheerUntil = now + CHEER_MS
       setRun($, r => ({ ...r, isWorking: false, mainActivity: 'idle' }))
     }
     return next(e)
@@ -396,12 +401,14 @@ export const register: Register = (on, options) => {
     if (e.props.hasSurvey) return next(e)
     const stored = await read($, runAtom)
     const r = snapLive ? snap : stored
-    if (!e.props.isWorking && !isLive(r)) {
+    const now = await $.clock.now()
+    // Just after an answer the office cats' desktop band stays a moment: the cat cheers where the fish was.
+    const cheering = skin === 'office-cats' && e.surface !== 'terminal' && now < cheerUntil
+    if (!e.props.isWorking && !isLive(r) && !cheering) {
       band = null
       return next(e)
     }
 
-    const now = await $.clock.now()
     const p = shownProgress(r)
 
     if (e.surface === 'terminal') {
@@ -419,12 +426,14 @@ export const register: Register = (on, options) => {
     }
 
     const { Box, Text, Svg } = $.ui.resolve(e)
-    const label = bandLabel(r, now, p, false)
+    const label = cheering && !isLive(r) ? 'All done!' : bandLabel(r, now, p, false)
     // Fill the row beside the label: the desktop app lays out about 8px per cell.
     const width = clamp((e.props.bodyColumns - label.length - 3) * 8, 120, 720)
     return (
       <Box flexDirection="row" alignItems="center" gap={1}>
-        <Svg source={barSvg(p, width, theme)} alt={label} width={width} height={6} isInteractive />
+        {skin === 'office-cats'
+          ? <Svg source={bandCatSvg(p, width, theme, cheering && !isLive(r))} alt={label} width={width} height={40} isInteractive />
+          : <Svg source={barSvg(p, width, theme)} alt={label} width={width} height={6} isInteractive />}
         <Text dimColor>{label}</Text>
       </Box>
     )
