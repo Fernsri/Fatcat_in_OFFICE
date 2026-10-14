@@ -60,6 +60,8 @@ Set them with `/plugin configure agent-office-cats@jitapa-mods` in a terminal se
 | `theme` | `matcha` (soft greens), `neon`, `ocean`, `sunset`, `mono` (header and bar colors) | `matcha` |
 | `fps` | 4 to 30, how often the terminal repaints | `12` |
 | `autoOpenPane` | open the pane when a session starts | `true` |
+| `toasts` | a small note in the app when Claude finishes, stops on an error, or a helper has an error | `true` |
+| `notifyAfterSeconds` | a desktop notification when Claude finishes or stops after working at least this long; `0` turns it off | `30` |
 
 ## Update
 

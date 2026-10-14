@@ -5,6 +5,8 @@ import type { StageAgent, StageRun, StageTask } from '../types'
 import { addUsed, describeCall, safeText, usedOf } from './activity'
 import { bandLabel, buildCards, officeSummary, robotOf, visibleSig } from './cards'
 import { fitRow, rowBarColumns } from './fit'
+import { helperAlert, turnAlert } from './notify'
+import type { AlertOptions } from './notify'
 import { progressOf } from './progress'
 import { cropCells, FRAME_MS, FRAMES, ROLES } from './robots'
 import type { Crop, Pose } from './robots'
@@ -57,6 +59,7 @@ let timer: { cancel: () => void } | null = null
 let pane: { keys: string[]; crop: Crop | null; bars: { key: string; p: number | null; color: string }[]; barColumns: number } | null = null
 let band: { requestId: string; columns: number } | null = null // the terminal bar, painted per frame
 let peak = { turn: -1, p: 0 } // the highest progress shown this turn
+let alerts: AlertOptions = { toasts: true, notifyAfterSec: 30 }
 let cheerUntil = 0 // after an answer, the desktop band's cat cheers until then
 
 /** How long the cat cheers after an answer, before the band goes. */
@@ -171,6 +174,8 @@ export const register: Register = (on, options) => {
   frameMs = Math.round(1000 / fps)
   transparent = options.backdrop === 'terminal'
   skin = skinNamed(String(options.skin))
+  const after = Number(options.notifyAfterSeconds ?? 30)
+  alerts = { toasts: options.toasts !== false, notifyAfterSec: Number.isFinite(after) ? Math.max(0, after) : 30 }
   timer = null // a reload drops the old environment's timers
   lastFrame = -1
   snapLive = false
@@ -278,6 +283,7 @@ export const register: Register = (on, options) => {
   on('turn.complete', async ($, e, next) => {
     const now = await $.clock.now()
     nowMs = now
+    const alert = e.agentId ? helperAlert(snap, e.agentId, e.reason, alerts) : turnAlert(snap, e.reason, e.durationMs, alerts)
     if (e.agentId) {
       const status = e.reason === 'answer' ? 'done' : 'failed'
       setAgent($, e.agentId, a => ({ ...a, status, activity: status, endedAt: now }))
@@ -285,6 +291,8 @@ export const register: Register = (on, options) => {
       if (e.reason === 'answer') cheerUntil = now + CHEER_MS
       setRun($, r => ({ ...r, isWorking: false, mainActivity: 'idle' }))
     }
+    if (alert.toast) $.ui.toast(alert.toast)
+    if (alert.notify) void $.ui.notify(alert.notify, { title: 'Cat Office' }).catch(() => {}) // a hook's deny or a failed write: the toast said it
     return next(e)
   })
 

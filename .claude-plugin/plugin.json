@@ -1,6 +1,6 @@
 {
   "name": "agent-office-cats",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Cat Office: a thin row per agent with an animated pixel cat (or robot, or spacefarer) for its role, what it is doing and its own little bar, under a pixel-office header, plus a progress bar above the prompt",
   "author": {
     "name": "Jitapa Porsom"
@@ -52,6 +52,18 @@
       "title": "Open the pane on start",
       "description": "Open the Cat Office by itself when the session starts (needs a wide terminal); /office always opens it",
       "default": true
+    },
+    "toasts": {
+      "type": "boolean",
+      "title": "Toasts",
+      "description": "A small note in the app when Claude finishes, stops on an error, or a helper has an error",
+      "default": true
+    },
+    "notifyAfterSeconds": {
+      "type": "number",
+      "title": "Desktop notification after (seconds)",
+      "description": "Send a desktop notification when Claude finishes or stops on an error after working at least this long; 0 turns it off",
+      "default": 30
     }
   }
 }

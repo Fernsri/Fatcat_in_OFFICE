@@ -4,6 +4,14 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.12.0 (2026-10-14)
+
+**Tells you when it is done.**
+
+- A toast when Claude finishes (`✓ All done · 2 min 14 sec · 3 helpers finished`), stops on an error (`✗ Stopped by an error · 45 sec`), or a helper has an error (`✗ Task 2 had an error: test the build`). Stopping it yourself says nothing.
+- A desktop notification for the same, once Claude worked at least 30 seconds, so you hear back after looking away.
+- Settings: `toasts` (on) and `notifyAfterSeconds` (30; 0 turns notifications off).
+
 ## 0.11.0 (2026-10-14)
 
 **The whole pane in the theme.**
