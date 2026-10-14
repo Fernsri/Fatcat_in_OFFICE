@@ -5,6 +5,8 @@ chubby office cats, a compact layout and plain, simple words.
 
 ![The office cats: seven roles in five poses](docs/office-cats.png)
 
+**New here? Read the [illustrated guide](docs/guide.html)** (download it and open it in a browser: a one-page poster in simple English).
+
 A Claude Code mod that shows what Claude and its helpers (subagents) are doing
 while they work: a thin row per agent with an animated pixel figure for its
 role, and a 0 to 100% progress bar above the prompt. Works in the terminal and
@@ -41,7 +43,7 @@ in the desktop app's Code tab.
 In a terminal Claude Code session:
 
 ```
-/plugin install agent-office-cats --marketplace Fernsri/cat-office-matcha
+/plugin install agent-office-cats --marketplace Fernsri/Fatcat_in_OFFICE
 ```
 
 The repository is private: you need access to it, and git signed in to GitHub
