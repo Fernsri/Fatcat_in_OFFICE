@@ -41,10 +41,11 @@ in the desktop app's Code tab.
 In a terminal Claude Code session:
 
 ```
-/plugin install agent-office-cats --marketplace Fernsri/agent-office-cats
+/plugin install agent-office-cats --marketplace Fernsri/cat-office-matcha
 ```
 
-Answer `y` to add the marketplace, then choose the user scope. Installed at the
+The repository is private: you need access to it, and git signed in to GitHub
+(the first `git clone` of it asks you to sign in). Answer `y` to add the marketplace, then choose the user scope. Installed at the
 user scope, it also loads in the desktop app's Code tab. Open the pane any time
 with `/office`. It is named apart from agent-stage, so both can be installed;
 enable one at a time, or you get two progress bars.
