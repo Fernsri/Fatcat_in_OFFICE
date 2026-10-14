@@ -71,11 +71,12 @@ test('every office cat role and pose draws a full grid, and its SVG fits the Svg
   }
 })
 
-test('each cat looks like no other, and each of its poses like no other', async () => {
-  const key = (role: Role, pose: Pose) => JSON.stringify(catGrid(role, pose, 0))
-  expect(new Set(ALL_ROLES.map(role => key(role, 'walk'))).size).toBe(ALL_ROLES.length)
-  for (const role of ALL_ROLES) expect(new Set(ALL_POSES.map(pose => key(role, pose))).size).toBe(ALL_POSES.length)
-  // working cats move between frames; the cat's name reads its coat
+test('each cat looks like no other; walking, done, failed and idle loops each differ', async () => {
+  const loop = (role: Role, pose: Pose) => JSON.stringify([0, 1, 2, 3].map(f => catGrid(role, pose, f)))
+  expect(new Set(ALL_ROLES.map(role => JSON.stringify(catGrid(role, 'walk', 0)))).size).toBe(ALL_ROLES.length)
+  for (const role of ALL_ROLES) expect(new Set((['walk', 'done', 'fail', 'idle'] as const).map(pose => loop(role, pose))).size).toBe(4)
+  // thinking is the file's blink, which steps through the same takes as the walk
+  expect(loop('coder', 'think')).toBe(loop('coder', 'walk'))
   expect(JSON.stringify(catGrid('coder', 'walk', 0))).not.toBe(JSON.stringify(catGrid('coder', 'walk', 1)))
   expect(figureName('office-cats', 'planner')).toBe('Planner, the blue-grey cat')
 })
@@ -433,7 +434,7 @@ test('the pane takes the theme: the header wall, the cats\' backdrop, the row ba
   expect(figureSvg('office-cats', 'coder', 'walk', '#f7f4e3', '#e0e2c4')).toContain('stroke="#e0e2c4"') // the cats on graph paper
   expect(figureStillSvg('office-cats', 'coder', 'idle', '#f7f4e3')).not.toContain('<path d="M4 0')
   expect(figureStillSvg('office-cats', 'coder', 'idle', '#ecefd6')).toContain('fill="#ecefd6"')
-  expect(figureStillSvg('office-cats', 'coder', 'idle')).toContain('fill="#FBF3EE"') // its own backdrop by default
+  expect(figureStillSvg('office-cats', 'coder', 'idle')).toContain('fill="#F9F1E9"') // its own backdrop by default
   const cards = buildCards(RUN, 10_000, false, THEMES.matcha, 0.5)
   expect(cards[0]?.barColor).toBe('#8daa62')
   expect(cards[1]?.statusColor).toBe('#8daa62') // a helper at work: the theme's green, not its role color

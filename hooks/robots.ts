@@ -343,17 +343,18 @@ export function robotSvg(role: Role, pose: Pose, backdrop = BACKDROP): string {
   return spriteSvg(k => robotGrid(role, pose, k), backdrop)
 }
 
-/** The animated SVG of any skin's sprite, given its frame at each step of the loop. */
+/** The animated SVG of any skin's sprite, given its frame at each step of the loop; square grids of any size. */
 export function spriteSvg(gridAt: (frame: number) => (string | null)[][], backdrop: string): string {
   const frames = Array.from({ length: FRAMES }, (_, k) => gridAt(k))
+  const size = frames[0]?.length ?? SIZE // 32 for the robots, 64 for the cats
   const paths = (grid: (string | null)[][], keep: (c: string) => boolean) => {
     const byColor = new Map<string, string>()
     grid.forEach((row, y) => {
       let x = 0
-      while (x < SIZE) {
+      while (x < size) {
         const c = row[x]
         let end = x + 1
-        while (end < SIZE && row[end] === c) end++
+        while (end < size && row[end] === c) end++
         if (c && keep(c)) byColor.set(c, (byColor.get(c) ?? '') + `M${x} ${y}h${end - x}v1h${x - end}z`)
         x = end
       }
@@ -369,6 +370,6 @@ export function spriteSvg(gridAt: (frame: number) => (string | null)[][], backdr
     const values = Array.from({ length: FRAMES }, (_, i) => (i === k ? 'visible' : 'hidden')).join(';')
     return `<g visibility="${k === 0 ? 'visible' : 'hidden'}"><animate attributeName="visibility" values="${values}" dur="${dur}s" calcMode="discrete" repeatCount="indefinite"/>${paths(g, () => true)}</g>`
   })
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}" shape-rendering="crispEdges">`
-    + `<rect width="${SIZE}" height="${SIZE}" fill="${backdrop}"/>${paths(still, () => true)}${groups.join('')}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges">`
+    + `<rect width="${size}" height="${size}" fill="${backdrop}"/>${paths(still, () => true)}${groups.join('')}</svg>`
 }

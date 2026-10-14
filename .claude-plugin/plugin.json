@@ -1,6 +1,6 @@
 {
   "name": "agent-office-cats",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Cat Office: a thin row per agent with an animated pixel cat (or robot, or spacefarer) for its role, what it is doing and its own little bar, under a pixel-office header, plus a progress bar above the prompt",
   "author": {
     "name": "Jitapa Porsom"
@@ -23,7 +23,7 @@
     "skin": {
       "type": "string",
       "title": "Figures",
-      "description": "office-cats: a chubby cat per role in overalls, the lead in a suit (orange tabby, blue-grey, golden, calico, siamese, pink tabby, white). robots: the pixel robots. space-crew: a different spacefarer per role.",
+      "description": "office-cats: the user's own round pixel cats, one per role (orange tabby, blue-grey, golden, pink calico, siamese, cream white, pink-and-white). robots: the pixel robots. space-crew: a different spacefarer per role.",
       "default": "office-cats",
       "options": [
         "office-cats",

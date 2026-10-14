@@ -1,307 +1,123 @@
-// The office cats: a third 32 × 32 pixel skin for the same roles and poses as
-// the robots. Chubby, brightly colored cats, one round blob from ears to feet,
-// each in its own coat and holding its own kit: the lead in a suit at a
-// whiteboard, the rest in overalls in the role color.
+// The office cats: a third skin for the same roles and poses as the robots.
+// The cats are the user's own pixel_cats_100x100_true_colors.html: seven cats,
+// five 100 × 100 takes each (catSprites.ts), and its drawCat ported as it was:
+// which take each pose shows frame by frame, the Zzz, the blush, the "!".
+// The desktop draws them whole; the terminal and every 32 × 32 path get them
+// shrunk.
 
-import { FRAMES, ROLES, SIZE, mixHex, spriteSvg } from './robots'
+import { SPRITES } from './catSprites'
 import type { Pose, Role } from './robots'
 
-/** The office wall behind the cats. */
-export const OFFICE = '#FBF3EE'
+/** The cream paper behind the cats. */
+export const OFFICE = '#F9F1E9'
 
-type Trio = readonly [base: string, light: string, dark: string]
-type Coat = 'solid' | 'tabby' | 'calico' | 'pointed'
-type Kit = 'marker' | 'coffee' | 'laptop' | 'cable' | 'checklist' | 'magnifier' | 'ipad'
+/** The full drawing's size. */
+export const CAT_SIZE = 100
 
-type Cat = {
-  /** What this cat is, for the board's captions: "orange tabby". */
-  kind: string
-  fur: Trio
-  coat: Coat
-  /** A tabby's stripes, a calico's orange patch, a siamese cat's points. */
-  mark?: string
-  /** A calico's black patch. */
-  mark2?: string
-  /** A lighter chest; none for a cat already pale all over. */
-  chest?: string
-  outfit: 'suit' | 'overalls'
-  kit: Kit
+/** What each role's cat is, for alt text: "Planner, the blue-grey cat". */
+export const CATS: Record<Role, { kind: string }> = {
+  lead: { kind: 'orange tabby' },
+  planner: { kind: 'blue-grey cat' },
+  researcher: { kind: 'cream white cat' },
+  tester: { kind: 'pink calico' },
+  coder: { kind: 'golden cat' },
+  reviewer: { kind: 'siamese cat' },
+  designer: { kind: 'pink-and-white cat' },
 }
 
-export const CATS: Record<Role, Cat> = {
-  lead: { kind: 'orange tabby', fur: ['#F7A03C', '#FFC67E', '#DB7A22'], coat: 'tabby', mark: '#C9651B', chest: '#FFE3BF', outfit: 'suit', kit: 'marker' },
-  planner: { kind: 'blue-grey cat', fur: ['#7088BC', '#97ACDA', '#566C9E'], coat: 'solid', chest: '#B9C8EA', outfit: 'overalls', kit: 'coffee' },
-  coder: { kind: 'golden cat', fur: ['#FFC23C', '#FFDB85', '#E59F1A'], coat: 'solid', chest: '#FFF6E0', outfit: 'overalls', kit: 'laptop' },
-  tester: { kind: 'calico cat', fur: ['#FFF7EC', '#FFFFFF', '#E6D8C4'], coat: 'calico', mark: '#F39237', mark2: '#3B3542', outfit: 'overalls', kit: 'cable' },
-  reviewer: { kind: 'siamese cat', fur: ['#FBEEDB', '#FFFAF1', '#E3D0B3'], coat: 'pointed', mark: '#8A4F35', outfit: 'overalls', kit: 'checklist' },
-  researcher: { kind: 'pink tabby', fur: ['#F49BAE', '#FFC4D0', '#D9738A'], coat: 'tabby', mark: '#E0607D', chest: '#FFE1E7', outfit: 'overalls', kit: 'magnifier' },
-  designer: { kind: 'white cat', fur: ['#FFFDF8', '#FFFFFF', '#E9DFD2'], coat: 'solid', outfit: 'overalls', kit: 'ipad' },
+/** The file's pose for each of the stage's: walking at work, blinking in thought, happy when done, surprised on failure, asleep when idle. */
+const FILE_POSE: Record<Pose, string> = { walk: 'walk', think: 'blink', done: 'happy', fail: 'surprise', idle: 'sleep' }
+
+/** The file's drawCat, as the user wrote it, onto a grid instead of a canvas; `f` is 0..3. */
+function drawCat(role: Role, pose: string, f: number): (string | null)[][] {
+  const N = CAT_SIZE
+  const g: (string | null)[][] = Array.from({ length: N }, () => new Array<string | null>(N).fill(null))
+  const fillRect = (x: number, y: number, w: number, h: number, color: string) => {
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) { const row = g[yy]; if (row && xx >= 0 && xx < N) row[xx] = color }
+  }
+  const i = f & 3
+  const poseFrame = ({ walk: [0, 1, 2, 3], blink: [0, 1, 2, 3], happy: [2, 0, 4, 0], surprise: [0, 2, 0, 4], sleep: [1, 3, 1, 3] } as Record<string, number[]>)[pose] ?? [0, 1, 2, 3]
+  const { palette, takes } = SPRITES[role]
+  const rows = takes[poseFrame[i] ?? 0] ?? []
+  rows.forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = palette[row[x]!]; if (c) fillRect(x, y, 1, 1, c) } })
+  if (pose === 'sleep') {
+    const j = [0, -2, 0, 2][i] ?? 0
+    // Pixel Z marks within canvas bounds.
+    fillRect(81 + j, 9, 9, 2, '#28335e'); fillRect(87 + j, 11, 3, 3, '#28335e'); fillRect(81 + j, 14, 9, 2, '#28335e')
+    fillRect(75 + j, 19, 6, 2, '#28335e'); fillRect(79 + j, 21, 2, 2, '#28335e'); fillRect(75 + j, 23, 6, 2, '#28335e')
+  }
+  if (pose === 'happy' && (i === 1 || i === 3)) { fillRect(21, 49, 4, 3, '#e77899'); fillRect(68, 49, 4, 3, '#e77899') }
+  if (pose === 'surprise' && (i === 1 || i === 3)) { fillRect(79, 8, 4, 13, '#273158'); fillRect(79, 24, 4, 4, '#273158') }
+  return g
 }
 
-const SUIT: Trio = ['#2C3E66', '#41578A', '#1E2B4A']
-const SHOES: Trio = ['#2A2D33', '#454A53', '#17191D']
-const OUT = '#2A2238'
-const EYE = '#2A2238'
-const NOSE = '#F27B93'
-const BLUSH = '#FF9FB2'
+/** The file's frame for a stage frame: its four frames in a loop. */
+const fileFrame = (frame: number) => ((frame % 4) + 4) % 4
 
-const trio = (c: string): Trio => [c, mixHex(c, '#FFFFFF', 0.35), mixHex(c, '#000000', 0.22)]
+/** One frame at full size, 100 × 100, for the desktop. */
+export function catGridFull(role: Role, pose: Pose, frame: number): (string | null)[][] {
+  return drawCat(role, FILE_POSE[pose], fileFrame(frame))
+}
 
-/**
- * The body from the top of the head to the bottom of the belly, [y, x0, x1]:
- * a rice ball (onigiri), a rounded crown widening smoothly to a broad base,
- * its bottom corners rounded off.
- */
-const LEFT = [12, 10, 9, 8, 8, 7, 7, 7, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 6, 7] // x0 for y = 5..25
-const BODY: [number, number, number][] = LEFT.map((x0, i): [number, number, number] => [5 + i, x0, 31 - x0])
+/** The part of the 100 × 100 drawing the 32 × 32 version keeps: the cat, its tail and the Zzz. */
+const KEEP = { x: 4, y: 4, size: 92 }
 
 /**
- * One frame as rows of colors, like robotGrid: `null` is backdrop, every other
- * cell a `#rrggbb`. Frames loop every FRAMES.
+ * One frame at 32 × 32, like robotGrid, for the terminal and every 32 × 32
+ * path: each cell takes the most common color of its patch of the full
+ * drawing, an empty pixel losing a tie, so outlines and eyes survive.
  */
 export function catGrid(role: Role, pose: Pose, frame: number): (string | null)[][] {
-  const C = CATS[role]
-  const N = SIZE
-  const f = ((frame % FRAMES) + FRAMES) % FRAMES
-  const fg: (string | null)[][] = Array.from({ length: N }, () => new Array<string | null>(N).fill(null))
-  const bg: (string | null)[][] = Array.from({ length: N }, () => new Array<string | null>(N).fill(null))
-  // drawn over the outline: the coffee's steam stays one pixel thin
-  const over: (string | null)[][] = Array.from({ length: N }, () => new Array<string | null>(N).fill(null))
-  const at = (grid: (string | null)[][], x: number, y: number, c: string | null) => {
-    const row = grid[y]
-    if (row && x >= 0 && x < N) row[x] = c
-  }
-  const put = (x: number, y: number, c: string | null) => at(fg, x, y, c)
-  const box = (x0: number, y0: number, x1: number, y1: number, c: string | null) => {
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) put(x, y, c)
-  }
-
-  const RC = ROLES[role].color
-  const cloth: Trio = C.outfit === 'suit' ? SUIT : trio(RC)
-  const fur = C.fur
-  const points: Trio = C.coat === 'pointed' && C.mark ? trio(C.mark) : fur
-
-  const walk = pose === 'walk', think = pose === 'think', done = pose === 'done', fail = pose === 'fail', idle = pose === 'idle'
-  let by = 0
-  if (walk) by = f % 2
-  if (done) by = [0, -1, -2, -2, -2, -1, 0, 0][f] ?? 0
-  const hy = by + (fail ? 1 : 0)
-  const lift = done ? by : 0
-
-  // ground shadow; the lead's whiteboard behind, top left
-  const sh = done ? -by : 0
-  for (let x = 6 + sh; x <= 25 - sh; x++) at(bg, x, 29, '#EADCD3')
-  for (let x = 8 + sh; x <= 23 - sh; x++) at(bg, x, 28, '#F1E5DD')
-  if (C.kit === 'marker') {
-    for (let y = 0; y <= 9; y++) for (let x = 0; x <= 6; x++) at(bg, x, y, x === 0 || x === 6 || y === 0 || y === 9 ? '#A9B2BE' : '#FFFFFF')
-    for (const [x, y] of [[1, 7], [2, 6], [3, 6], [4, 4], [5, 3]] as const) at(bg, x, y, RC)
-    for (let x = 1; x <= 5; x++) at(bg, x, 10, '#8E98A5') // the marker tray
-  }
-
-  // the tail, behind the body: curled up, up straight when cheering, flat on failure
-  const tailPath: [number, number][] = done
-    ? [[4, 24], [3, 23], [2, 22], [2, 21], [2, 20], [2, 19], [2, 18], [2, 17]]
-    : fail
-      ? [[4, 26], [3, 27], [2, 27], [1, 27], [0, 26]]
-      : [[4, 24], [3, 23], [2, 22], [2, 21], [2, 20], [2, 19], [3, 18]]
-  const sway = walk ? [0, -1, 0, 1][f % 4] ?? 0 : 0
-  tailPath.forEach(([x, y], i) => {
-    const dx = !done && !fail && y <= 20 ? sway : 0
-    const ty = y + (fail ? 0 : by)
-    const c = C.coat === 'pointed' ? points[0]
-      : C.coat === 'tabby' && i % 2 === 1 ? (C.mark ?? fur[0])
-        : C.coat === 'calico' && i >= tailPath.length - 3 ? (C.mark2 ?? fur[0])
-          : fur[0]
-    put(x + dx, ty, c); put(x + dx + 1, ty, c)
-  })
-
-  // four stubby legs: the outfit on top, paws (the lead's shoes) below
-  const feet: Trio = C.outfit === 'suit' ? SHOES : points
-  for (const [lx, pair] of [[8, 0], [12, 1], [18, 0], [22, 1]] as const) {
-    const up = walk && f % 4 === (pair ? 3 : 1) ? -1 : 0
-    box(lx, 26 + lift + up, lx + 1, 26 + lift + up, cloth[2])
-    box(lx, 27 + lift + up, lx + 1, 27 + lift + up, feet[0])
-    put(lx, 27 + lift + up, feet[1])
-  }
-
-  // ears, then the round body, lit from the top left
-  const earFur = (left: boolean) => (C.coat === 'pointed' ? points[0] : C.coat === 'calico' ? (left ? C.mark : C.mark2) ?? fur[0] : fur[0])
-  const ear = (left: boolean) => {
-    const m = (x: number) => (left ? x : 31 - x)
-    const rows: [number, number, number][] = fail ? [[4, 9, 12], [5, 8, 10]] : [[2, 11, 11], [3, 10, 12], [4, 10, 13]]
-    for (const [y, a, b] of rows) for (let x = a; x <= b; x++) put(m(x), y + hy, earFur(left))
-    const inner: [number, number, number][] = fail ? [[4, 10, 11]] : [[3, 11, 11], [4, 11, 12]]
-    for (const [y, a, b] of inner) for (let x = a; x <= b; x++) put(m(x), y + hy, NOSE)
-  }
-  ear(true)
-  ear(false)
-  const top = BODY[0]?.[0] ?? 6
-  const bottom = BODY[BODY.length - 1]?.[0] ?? 25
-  for (const [y, x0, x1] of BODY) {
-    const yy = y + hy
-    box(x0, yy, x1, yy, fur[0])
-    put(x0, yy, fur[1]); put(x1, yy, fur[2])
-    if (y === top) box(x0, yy, x1, yy, fur[1])
-    if (y === bottom) box(x0 + 1, yy, x1, yy, fur[2])
-  }
-
-  // coat markings and the pale chest, painted only on fur so the round outline stays round
-  const furs = new Set<string>(fur)
-  const coat = (x0: number, y0: number, x1: number, y1: number, c: string) => {
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (furs.has(fg[y]?.[x] ?? '')) put(x, y, c)
-  }
-  const edge = (y: number) => BODY.find(([by0]) => by0 === y) ?? [y, 15, 16]
-  if (C.chest) for (const [y, a, b] of [[12, 12, 19], [13, 11, 20], [14, 11, 20], [15, 12, 19]] as const) box(a, y + hy, b, y + hy, C.chest)
-  if (C.coat === 'tabby' && C.mark) {
-    for (const [x, y] of [[13, 6], [13, 7], [15, 6], [16, 6], [15, 7], [16, 7], [18, 6], [18, 7]] as const) put(x, y + hy, C.mark)
-    for (const y of [9, 11, 15, 17]) { const [, x0, x1] = edge(y); coat(x0, y + hy, x0 + 1, y + hy, C.mark); coat(x1 - 1, y + hy, x1, y + hy, C.mark) }
-  }
-  if (C.coat === 'calico' && C.mark && C.mark2) {
-    coat(6, 5 + hy, 12, 9 + hy, C.mark)
-    coat(19, 5 + hy, 25, 8 + hy, C.mark2)
-    coat(4, 14 + hy, 8, 17 + hy, C.mark); coat(23, 15 + hy, 27, 17 + hy, C.mark2)
-  }
-  if (C.coat === 'pointed') {
-    const mask = mixHex(points[0], fur[0], 0.45)
-    for (const [y, a, b] of [[11, 13, 18], [12, 12, 19], [13, 12, 19], [14, 13, 18]] as const) box(a, y + hy, b, y + hy, mask)
-  }
-
-  // the outfit over the lower body: overalls with straps, or a suit, shirt and tie
-  const cut = (y: number) => BODY.find(([by0]) => by0 === y)
-  if (C.outfit === 'overalls') {
-    put(11, 14 + hy, cloth[2]); put(11, 15 + hy, cloth[2]); put(20, 14 + hy, cloth[2]); put(20, 15 + hy, cloth[2])
-    box(11, 16 + hy, 20, 17 + hy, cloth[0]); box(11, 16 + hy, 20, 16 + hy, cloth[1])
-    put(12, 17 + hy, '#F4D35E'); put(19, 17 + hy, '#F4D35E')
-    for (let y = 18; y <= 25; y++) {
-      const span = cut(y)
-      if (!span) continue
-      box(span[1], y + hy, span[2], y + hy, cloth[0])
-      put(span[1], y + hy, cloth[1]); put(span[2], y + hy, cloth[2])
+  const full = catGridFull(role, pose, frame)
+  const s = KEEP.size / 32
+  return Array.from({ length: 32 }, (_, ty) => Array.from({ length: 32 }, (_, tx) => {
+    const votes = new Map<string | null, number>()
+    for (let y = Math.floor(KEEP.y + ty * s); y < KEEP.y + (ty + 1) * s; y++) {
+      for (let x = Math.floor(KEEP.x + tx * s); x < KEEP.x + (tx + 1) * s; x++) {
+        const c = full[y]?.[x] ?? null
+        votes.set(c, (votes.get(c) ?? 0) + (c ? 1 : 0.9))
+      }
     }
-    box(14, 19 + hy, 17, 20 + hy, cloth[2]); box(14, 19 + hy, 17, 19 + hy, cloth[1])
-  } else {
-    for (let y = 16; y <= 25; y++) {
-      const span = cut(y)
-      if (!span) continue
-      box(span[1], y + hy, span[2], y + hy, cloth[0])
-      put(span[1], y + hy, cloth[1]); put(span[2], y + hy, cloth[2])
-    }
-    box(13, 16 + hy, 18, 16 + hy, '#FFFFFF'); box(14, 17 + hy, 17, 17 + hy, '#FFFFFF'); box(15, 18 + hy, 16, 18 + hy, '#FFFFFF')
-    box(15, 16 + hy, 16, 16 + hy, mixHex(RC, '#000000', 0.25))
-    box(15, 17 + hy, 16, 21 + hy, RC)
-    put(12, 17 + hy, cloth[1]); put(19, 17 + hy, cloth[1])
-  }
-
-  // the face: blush, eyes, nose, mouth
-  put(9, 12 + hy, BLUSH); put(22, 12 + hy, BLUSH)
-  const eye = (ex: number, left: boolean) => {
-    const y = 10 + hy
-    if (done) { put(ex - 1, y + 1, EYE); put(ex, y, EYE); put(ex + 1, y, EYE); put(ex + 2, y + 1, EYE); return }
-    if (fail) {
-      const a = left ? ex : ex + 1, b = left ? ex + 1 : ex
-      put(a, y - 1, EYE); put(b, y, EYE); put(a, y + 1, EYE); return
-    }
-    if (idle || (walk && f === 6)) { box(ex - 1, y + 1, ex + 2, y + 1, EYE); return } // sleepy, or a blink
-    const ey = think ? y - 1 : y
-    const ex2 = think ? ex + 1 : ex
-    box(ex2, ey, ex2 + 1, ey + 1, EYE)
-    put(ex2, ey, '#FFFFFF')
-  }
-  eye(11, true)
-  eye(19, false)
-  put(15, 12 + hy, NOSE); put(16, 12 + hy, NOSE)
-  const mouth: [number, number][] = fail ? [[14, 15], [15, 14], [16, 14], [17, 15]]
-    : think ? [[15, 14], [16, 14]]
-      : done ? [[14, 13], [17, 13], [14, 14], [17, 14], [15, 15], [16, 15]]
-        : [[14, 13], [15, 14], [16, 14], [17, 13]]
-  for (const [x, y] of mouth) put(x, y + hy, EYE)
-  if (done) box(15, 13 + hy, 16, 14 + hy, NOSE)
-
-  // paws: little nubs with their own outline, so they read against the body
-  const paw = (x: number, y: number) => {
-    for (const [ox, oy] of [[-1, 0], [-1, 1], [3, 0], [3, 1], [0, 2], [1, 2], [2, 2], [0, -1], [1, -1], [2, -1]] as const) put(x + ox, y + oy, OUT)
-    box(x, y, x + 2, y + 1, points[0]); box(x, y, x + 2, y, points[1])
-    put(x + 1, y + 1, points[2])
-  }
-  const sw = walk ? [0, -1, 0, 1][f % 4] ?? 0 : 0
-  const held: [number, number] = fail ? [20, 21 + hy] : [20, 19 + hy - sw]
-
-  // the kit, in the screen-right paw
-  const [px, py] = held
-  if (C.kit === 'marker') {
-    box(px + 3, py - 6, px + 4, py + 1, '#F4F6FA')
-    box(px + 4, py - 6, px + 4, py + 1, '#C9D1DA')
-    box(px + 3, py - 8, px + 4, py - 7, RC)
-    box(px + 3, py - 2, px + 4, py - 2, RC)
-  } else if (C.kit === 'coffee') {
-    box(px + 3, py - 5, px + 7, py + 1, '#FFFFFF')
-    box(px + 7, py - 4, px + 7, py + 1, '#D5DAE1')
-    box(px + 3, py - 5, px + 7, py - 5, '#6B3E26')
-    box(px + 3, py - 2, px + 7, py - 1, RC)
-    for (const [x, y] of [[px + 8, py - 4], [px + 9, py - 4], [px + 9, py - 3], [px + 9, py - 2], [px + 8, py - 2]] as const) put(x, y, '#FFFFFF')
-    const s = f % 4
-    for (const [x, y] of [[px + 4 + (s % 2), py - 7], [px + 5 - (s % 2), py - 8], [px + 4 + (s >> 1), py - 9]] as const) at(over, x, y, '#B4BCC8')
-  } else if (C.kit === 'laptop') {
-    box(px + 2, py - 4, px + 7, py + 1, '#C9D2DC'); box(px + 7, py - 4, px + 7, py + 1, '#9AA6B4')
-    box(px + 3, py - 3, px + 6, py, '#2E3A4E'); put(px + 4, py - 2, '#7CE0A6'); put(px + 5, py - 1, '#7CE0A6')
-    box(px + 1, py + 2, px + 7, py + 2, '#9AA6B4')
-  } else if (C.kit === 'cable') {
-    const CABLE = '#2F7DD1'
-    box(px + 1, py - 4, px + 3, py - 2, '#DDE6EE')
-    box(px + 1, py - 4, px + 3, py - 4, '#E0B84A')
-    put(px + 2, py - 1, CABLE)
-    const swing = [0, 0, 1, 1, 0, 0, -1, -1][f] ?? 0
-    for (let k = 2; k <= 6; k++) put(px + 4 + (k >= 4 ? swing : 0), py + k, CABLE)
-    put(px + 3, py + 2, CABLE)
-  } else if (C.kit === 'checklist') {
-    box(px + 2, py - 5, px + 7, py + 2, '#B07A45')
-    box(px + 3, py - 4, px + 6, py + 1, '#FAFAFA')
-    box(px + 4, py - 6, px + 5, py - 5, '#9AA3AD')
-    for (const [x, y] of [[px + 3, py - 2], [px + 4, py - 1], [px + 5, py - 2], [px + 6, py - 3]] as const) put(x, y, '#3FA34D')
-    box(px + 3, py + 1, px + 6, py + 1, '#B8C2CC')
-  } else if (C.kit === 'magnifier') {
-    box(px + 3, py - 2, px + 3, py + 1, '#5A4636')
-    box(px + 1, py - 8, px + 6, py - 3, '#3B3542')
-    box(px + 2, py - 7, px + 5, py - 4, '#BFE3F5'); put(px + 2, py - 7, '#FFFFFF')
-    put(px + 1, py - 8, null); put(px + 6, py - 8, null); put(px + 1, py - 3, null); put(px + 6, py - 3, null)
-  } else {
-    box(px + 2, py - 6, px + 8, py + 1, '#2A2D33')
-    box(px + 3, py - 5, px + 7, py, '#F4F6FA')
-    put(px + 3, py - 5, '#F4D35E'); put(px + 7, py - 1, '#3AA37A')
-    put(px + 3 + (f % 5), py - 2, '#E5508F'); put(px + 3 + ((f + 1) % 5), py - 2, '#E5508F')
-  }
-  paw(px, py) // the holding paw stays in front of the kit
-
-  // the free paw: on the belly, on the chin when thinking, waving high when cheering
-  if (done) {
-    box(4, 10 + by, 5, 14 + by, fur[0]); put(4, 10 + by, fur[1])
-    paw(3, 8 + by)
-  } else if (think) paw(11, 15 + hy)
-  else paw(9, fail ? 21 + hy : 19 + hy + sw)
-
-  // speech bubble: thinking dots, a done check, a failure mark
-  if (think || done || fail) {
-    const bc = think ? '#FFFFFF' : done ? '#5BA53C' : '#E5534B'
-    const bo = f % 4 < 2 ? 0 : 1
-    box(24, bo, 31, 5 + bo, bc)
-    put(24, bo, null); put(31, bo, null); put(24, 5 + bo, null); put(31, 5 + bo, null)
-    put(24, 6 + bo, bc); put(23, 7 + bo, bc)
-    if (think) for (const i of [0, 1, 2]) put(25 + i * 2, 3 + bo, Math.floor(f / 2) % 4 > i ? '#26384C' : '#C9D1DA')
-    else if (done) for (const [x, y] of [[25, 3], [26, 4], [27, 3], [28, 2], [29, 1]] as const) put(x, y + bo, '#FFFFFF')
-    else { box(27, 1 + bo, 28, 2 + bo, '#FFFFFF'); box(27, 4 + bo, 28, 4 + bo, '#FFFFFF') }
-  }
-
-  // outline every shape for the sticker look, flatten onto the backdrop, then the thin layer
-  return fg.map((row, y) => row.map((c, x) => {
-    if (c) return c
-    const o = over[y]?.[x]
-    if (o) return o
-    const near = fg[y - 1]?.[x] || fg[y + 1]?.[x] || row[x - 1] || row[x + 1]
-    return near ? OUT : bg[y]?.[x] ?? null
+    let best: string | null = null
+    let most = -1
+    for (const [c, n] of votes) if (n > most) [best, most] = [c, n]
+    return best
   }))
 }
 
-/** An animated SVG of one role and pose, the same layout as the robots' (see robotSvg). */
+/** A grid as SVG paths, one per color, each run of a row one rectangle. */
+function paths(grid: (string | null)[][]): string {
+  const byColor = new Map<string, string>()
+  grid.forEach((row, y) => {
+    let x = 0
+    while (x < row.length) {
+      const c = row[x]
+      let end = x + 1
+      while (end < row.length && row[end] === c) end++
+      if (c) byColor.set(c, (byColor.get(c) ?? '') + `M${x} ${y}h${end - x}v1h${x - end}z`)
+      x = end
+    }
+  })
+  return [...byColor].map(([c, d]) => `<path fill="${c}" d="${d}"/>`).join('')
+}
+
+/** The file's speed: a frame every 210 ms. */
+const FRAME_SEC = 0.21
+
+/**
+ * An animated SVG of one role and pose at full size: the file's four frames,
+ * the pixels they share drawn once underneath, each frame's own on top.
+ */
 export function catSvg(role: Role, pose: Pose, backdrop = OFFICE): string {
-  return spriteSvg(k => catGrid(role, pose, k), backdrop)
+  const N = CAT_SIZE
+  const frames = [0, 1, 2, 3].map(f => catGridFull(role, pose, f))
+  const first = frames[0] ?? []
+  const still = first.map((row, y) => row.map((c, x) => (frames.every(g => g[y]?.[x] === c) ? c : null)))
+  const moving = frames.map(g => g.map((row, y) => row.map((c, x) => (still[y]?.[x] === c ? null : c))))
+  const groups = moving.map((g, k) => {
+    const values = [0, 1, 2, 3].map(i => (i === k ? 'visible' : 'hidden')).join(';')
+    return `<g visibility="${k === 0 ? 'visible' : 'hidden'}"><animate attributeName="visibility" values="${values}" dur="${4 * FRAME_SEC}s" calcMode="discrete" repeatCount="indefinite"/>${paths(g)}</g>`
+  })
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${N} ${N}" shape-rendering="crispEdges">`
+    + `<rect width="${N}" height="${N}" fill="${backdrop}"/>${paths(still)}${groups.join('')}</svg>`
 }

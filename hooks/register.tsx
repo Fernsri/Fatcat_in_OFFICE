@@ -373,16 +373,16 @@ export const register: Register = (on, options) => {
           return (
             <Box key={card.key} flexDirection="row" alignItems="center" gap={1}>
               <Svg
-                source={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 52" width="4" height="52"><rect width="4" height="52" rx="2" fill="${card.live ? hex(theme.main) : '#CFC8C2'}"/></svg>`}
+                source={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 100" width="4" height="100"><rect width="4" height="100" rx="2" fill="${card.live ? hex(theme.main) : '#CFC8C2'}"/></svg>`}
                 alt={card.live ? 'at work' : 'resting'}
                 width={4}
-                height={52}
+                height={100}
               />
               <Svg
                 source={moving ? figureSvg(skin, card.robot.role, card.robot.pose, paper, lines) : figureStillSvg(skin, card.robot.role, card.robot.pose, paper, lines)}
                 alt={`${figureName(skin, card.robot.role)}, ${POSE_WORDS[card.robot.pose]}`}
-                width={52}
-                height={52}
+                width={100}
+                height={100}
                 isInteractive={moving}
               />
               <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>

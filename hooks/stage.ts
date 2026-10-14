@@ -4,7 +4,7 @@
 
 import type { StageAgent, StageRun } from '../types'
 import { astroGrid, astroSvg, LOOKS, SPACE } from './astronauts'
-import { catGrid, catSvg, CATS, OFFICE } from './cats'
+import { catGrid, catGridFull, catSvg, CATS, OFFICE } from './cats'
 import { BACKDROP, cropCells, FRAME_MS, FRAMES, halfGrid, ROLES, robotGrid, robotSvg } from './robots'
 import type { Crop, Pose, Role } from './robots'
 
@@ -14,8 +14,8 @@ export type Skin = 'office-cats' | 'robots' | 'space-crew'
 type Grid = (string | null)[][]
 
 /** Everything a skin draws with: its frames, its animated SVG, its backdrop and its figures' names. */
-const SKINS: Record<Skin, { grid: (role: Role, pose: Pose, frame: number) => Grid; svg: (role: Role, pose: Pose, backdrop?: string) => string; backdrop: string; name: (role: Role) => string }> = {
-  'office-cats': { grid: catGrid, svg: catSvg, backdrop: OFFICE, name: role => `${ROLES[role].label}, the ${CATS[role].kind}` },
+const SKINS: Record<Skin, { grid: (role: Role, pose: Pose, frame: number) => Grid; svg: (role: Role, pose: Pose, backdrop?: string) => string; still?: (role: Role, pose: Pose) => Grid; backdrop: string; name: (role: Role) => string }> = {
+  'office-cats': { grid: catGrid, svg: catSvg, still: (role, pose) => catGridFull(role, pose, 0), backdrop: OFFICE, name: role => `${ROLES[role].label}, the ${CATS[role].kind}` },
   robots: { grid: robotGrid, svg: robotSvg, backdrop: BACKDROP, name: role => `${ROLES[role].label} robot` },
   'space-crew': { grid: astroGrid, svg: astroSvg, backdrop: SPACE, name: role => `${ROLES[role].label}, the ${LOOKS[role].kind.toLowerCase()}` },
 }
@@ -39,13 +39,14 @@ export function figureSvg(skin: Skin, role: Role, pose: Pose, backdrop?: string,
   return ruled(SKINS[skin].svg(role, pose, backdrop), paperLines)
 }
 
-/** A 32 × 32 figure SVG with graph-paper lines over its backdrop, under the figure; as it was without a color. */
+/** A figure SVG with graph-paper lines over its backdrop, under the figure; as it was without a color. */
 function ruled(svg: string, lines?: string): string {
   if (!lines) return svg
+  const n = Number(/viewBox="0 0 (d+)/.exec(svg)?.[1] ?? 32), step = n / 8
   let d = ''
-  for (let k = 4; k < 32; k += 4) d += `M${k} 0V32M0 ${k}H32`
+  for (let k = step; k < n; k += step) d += `M${k} 0V${n}M0 ${k}H${n}`
   const at = svg.indexOf('/>', svg.indexOf('<rect')) + 2
-  return svg.slice(0, at) + `<path d="${d}" stroke="${lines}" stroke-width="0.6" fill="none"/>` + svg.slice(at)
+  return svg.slice(0, at) + `<path d="${d}" stroke="${lines}" stroke-width="${n / 53}" fill="none"/>` + svg.slice(at)
 }
 
 /**
@@ -54,7 +55,9 @@ function ruled(svg: string, lines?: string): string {
  * restarts; used for figures that are done, failed or idle.
  */
 export function figureStillSvg(skin: Skin, role: Role, pose: Pose, backdrop = SKINS[skin].backdrop, paperLines?: string): string {
-  return ruled(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges"><rect width="32" height="32" fill="${backdrop}"/>${gridPaths(SKINS[skin].grid(role, pose, 0))}</svg>`, paperLines)
+  const grid = SKINS[skin].still?.(role, pose) ?? SKINS[skin].grid(role, pose, 0)
+  const n = grid.length
+  return ruled(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><rect width="${n}" height="${n}" fill="${backdrop}"/>${gridPaths(grid)}</svg>`, paperLines)
 }
 
 /** A sprite grid as SVG paths, one per color, each run of a row one rectangle; empty cells left out. */
@@ -400,36 +403,13 @@ function pixelArt(rows: readonly string[], colors: Record<string, string>, outli
   }))
 }
 
-/** The lead cat in small, rice-ball round: the orange tabby's head over its suit collar and tie. */
-const WALKER = [
-  '..O.......O..',
-  '..OP.....PO..',
-  '..OOOOOOOOO..',
-  '.OOOOROROOOO.',
-  '.OOOOOOOOOOO.',
-  'OOWEOOOOOWEOO',
-  'OOEEOOOOOEEOO',
-  'OKOOOONOOOOKO',
-  'OOOOOMOMOOOOO',
-  '.OOOOCCCOOOO.',
-  '..SSSWTWSSS..',
-]
-const WALKER_COLORS: Record<string, string> = {
-  O: '#F7A03C', R: '#C9651B', P: '#F27B93', W: '#FFFFFF', E: SPRITE_INK, K: '#FF9FB2',
-  N: '#F27B93', M: SPRITE_INK, C: '#FFE3BF', S: '#2C3E66', T: '#2BA4E0',
-}
-
-/** One frame of the walker: a blink now and then while walking; ^ ^ eyes and an open mouth when cheering. */
+/** The lead cat, the orange tabby of the office cats, at half size and cropped to the cat: walking, or happy when cheering. */
 function walkerFrame(cheer: boolean, frame: number): Grid {
-  const rows = [...WALKER]
-  if (cheer) {
-    rows[5] = 'OOOEOOOOOEOOO'
-    rows[6] = 'OOEOEOOOEOEOO'
-    rows[8] = 'OOOOOMPMOOOOO'
-  } else if (frame % FRAMES === 6) {
-    rows[5] = 'OOOOOOOOOOOOO'
-  }
-  return pixelArt(rows, WALKER_COLORS)
+  const g = catGrid('lead', cheer ? 'done' : 'walk', frame)
+  const used = g.map((r, y) => (r.some(Boolean) ? y : -1)).filter(y => y >= 0)
+  const cols = g.flatMap(r => r.map((c, x) => (c ? x : -1))).filter(x => x >= 0)
+  const x0 = Math.min(...cols), x1 = Math.max(...cols)
+  return g.slice(used[0] ?? 0, (used.at(-1) ?? 0) + 1).map(r => r.slice(x0, x1 + 1))
 }
 
 /**
@@ -443,12 +423,14 @@ function walkerFrame(cheer: boolean, frame: number): Grid {
  */
 export function bandCatSvg(p: number, width: number, theme: Theme, celebrate = false): string {
   const c = (n: number) => '#' + n.toString(16).padStart(6, '0')
-  const H = 40, BAR = 8, BAR_Y = 27, CAT_Y = 2, S = 2
+  const H = 40, BAR = 8, BAR_Y = 27, S = 1
   const percent = celebrate ? 100 : Math.round(Math.max(0, Math.min(1, p)) * 100)
   const fishW = 16 * S
   const trackW = width - fishW - 6
   const filled = Math.round((trackW * percent) / 100)
-  const catW = ((WALKER[0]?.length ?? 0) + 2) * S
+  const sprite = walkerFrame(false, 0)
+  const catW = Math.round((sprite[0]?.length ?? 0) * S)
+  const CAT_Y = BAR_Y + 3 - Math.round(sprite.length * S) // standing on the bar
   const catX = celebrate ? width - catW - 4 : Math.max(0, Math.min(trackW - catW, filled - catW / 2))
   const u = `bc${percent}w${width}${c(theme.barFrom).slice(1)}${c(theme.barTo).slice(1)}${celebrate ? 'c' : ''}`
 

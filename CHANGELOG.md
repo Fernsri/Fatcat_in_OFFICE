@@ -4,6 +4,14 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.15.0 (2026-10-15)
+
+**The user's own cats.**
+
+- The office cats are now the user's pixel_cats_100x100_true_colors cats: seven round cats, five 100 × 100 takes each, colors reduced to 20 a cat so the drawings stay small enough to show. The file's drawCat is ported as it was: walking at work, blinking in thought, happy (with a blush) when done, surprised ("!") on failure, asleep (Zzz) when idle, a frame every 210 ms.
+- On the desktop each row shows its cat at 100 × 100, one pixel for one pixel; the terminal and the walker on the progress bar get it shrunk to 32 × 32.
+- The cats wear nothing and hold nothing: no overalls, suit, kit or whiteboard.
+
 ## 0.14.0 (2026-10-14)
 
 **Rice-ball cats.**
