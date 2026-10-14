@@ -53,7 +53,7 @@ const shorten = (text: string, n: number) => (text.length > n ? text.slice(0, n 
  * them cheaply every second; elsewhere a ticking number would rebuild the
  * drawings each second, so running rows show none and finished ones their time.
  */
-/** The helpers' rows, one per role, always in this order under the lead's. */
+/** The helpers' rows, one per role with a job, in this order under the lead's. */
 export const ROW_ROLES: Role[] = ['planner', 'researcher', 'coder', 'tester', 'reviewer', 'designer']
 
 export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Theme, p: number): Card[] {
@@ -79,8 +79,8 @@ export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Th
     robot: robotOf(r, 'main', now) ?? { role: 'lead', pose: 'idle' },
   }
 
-  // Every role keeps its own row, in a fixed order: its latest job (running ones first), or asleep with none.
-  const agents = ROW_ROLES.map((role): Card => {
+  // A row for each role that has a job, in a fixed order: its latest job, running ones first.
+  const agents = ROW_ROLES.filter(role => r.agents.some(a => roleOf(a.type, a.label) === role)).map((role): Card => {
     const mine = r.agents.filter(a => roleOf(a.type, a.label) === role)
     const running = mine.filter(a => a.status === 'running')
     const a = running.at(-1) ?? mine.at(-1)

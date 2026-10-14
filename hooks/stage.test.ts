@@ -248,10 +248,8 @@ test('a change nobody can see is not a visible change; one they can see is', asy
   const doing = { ...RUN, agents: RUN.agents.map(a => ({ ...a, doing: 'Reading x.ts' })) }
   expect(visibleSig(doing, 10_000, 0.5, THEMES.neon) === base).toBe(false)
   const cards = buildCards(RUN, 10_000, false, THEMES.neon, 0.5)
-  // every role keeps a row in a fixed order; roles with no job sleep
-  expect(cards.map(c => c.key)).toEqual(['main', 'a2', 'a1', 'role:coder', 'role:tester', 'role:reviewer', 'role:designer'])
-  expect(cards[3]?.status).toBe('○ Asleep')
-  expect(cards[3]?.robot).toEqual({ role: 'coder', pose: 'idle' })
+  // only roles with a job get a row, in a fixed order: planner before researcher
+  expect(cards.map(c => c.key)).toEqual(['main', 'a2', 'a1'])
   expect(cards.some(c => /\d+ sec/.test(c.status) && c.live)).toBe(false) // no ticking seconds off the terminal
 })
 
@@ -266,15 +264,17 @@ test('rows speak plain words, and each has its own bar', async () => {
   expect(failed[1]?.status).toBe('✗ Oops, error (1 sec)')
   expect(failed[1]?.barColor).toBe('#e5534b') // neon's red
   expect(buildCards({ ...RUN, isWorking: false, agents: [] }, 10_000, false, THEMES.neon, 1)[0]?.status).toBe('○ Waiting for you')
-  expect(officeSummary(cards)).toBe('2 working · 1 done · 4 napping')
-  expect(officeSummary(failed)).toBe('1 working · 1 error · 5 napping')
+  expect(officeSummary(cards)).toBe('2 working · 1 done')
+  expect(officeSummary(failed)).toBe('1 working · 1 error')
   const tasks: StageRun['tasks'] = [{ id: '1', title: 'a', status: 'completed' }, { id: '2', title: 'b', status: 'pending' }]
   expect(bandLabel({ ...RUN, tasks }, 10_000, 0.5, true)).toBe('50% · 1 of 2 to-dos done · 10 sec · 1 helper working')
 })
 
 test('the desktop row bar slides while a helper works and fills when it is done', async () => {
   expect(rowBarSvg(null, 90, '#D9443A')).toContain('<animate attributeName="x"')
-  expect(rowBarSvg(0.5, 90, '#D9443A')).toContain('<rect width="45" height="8" rx="4" fill="#D9443A"/>')
+  expect(rowBarSvg(0.5, 90, '#D9443A')).toContain('<rect y="0" width="45" height="8" rx="4" fill="#D9443A"/>')
+  expect(rowBarSvg(0.5, 90, ['#FFCB93', '#E8924A'])).toContain('<linearGradient') // each cat's own colors, light to deep
+  expect(rowBarSvg(1, 90, '#5ba53c', '#ECE6E0', 'coder')).toContain('scale(2)') // its tool at the end
   expect(rowBarSvg(1, 90, '#5ba53c')).not.toContain('<animate')
   const banner = bannerSvg(400, '2 working · <1> done', THEMES.matcha)
   expect(banner).toContain('Cat Office')
@@ -327,8 +327,8 @@ test('a spawned subagent and the plan show on the pane and the band', async ($, 
       props: { title: 'Cat Office', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: SCROLL, view: {} },
     })
     if (surface === 'terminal') expect(await pane.find({ type: 'Text', text: /Cat Office/ })).toBeDefined()
-    // the desktop's header is the pixel office; then each of the seven rows: its stripe, its figure, its bar
-    else expect(await pane.findAll({ type: 'Svg' })).toHaveLength(1 + 7 * 3)
+    // the desktop's header is the pixel office; then each row: its stripe, its figure, its bar
+    else expect(await pane.findAll({ type: 'Svg' })).toHaveLength(1 + 2 * 3)
     expect(await pane.find({ type: 'Text', text: /Task 1: review the auth change/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /look around/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /Reviewer/ })).toBeDefined()
@@ -372,7 +372,7 @@ test('a terminal row has its figure and its bar, and a narrow pane its text alon
 
   for (const rows of [30, 5]) {
     const pane = await mount(rows)
-    expect(await pane.findAll({ type: 'Raster' })).toHaveLength(14) // seven rows: a figure and a bar each
+    expect(await pane.findAll({ type: 'Raster' })).toHaveLength(4) // two rows: a figure and a bar each
     expect(await pane.find({ type: 'Text', text: /Tester/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /Task 1: test the build/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /working/ })).toBeDefined()
@@ -380,7 +380,7 @@ test('a terminal row has its figure and its bar, and a narrow pane its text alon
   }
 
   const narrow = await mount(30, 30)
-  expect(await narrow.findAll({ type: 'Raster' })).toHaveLength(7) // the bars stay
+  expect(await narrow.findAll({ type: 'Raster' })).toHaveLength(2) // the bars stay
   expect(await narrow.find({ type: 'Text', text: /Tester/ })).toBeDefined()
   await narrow.unmount()
 })

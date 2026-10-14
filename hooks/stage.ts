@@ -274,17 +274,66 @@ export function barTheme(theme: Theme, color: string): Theme {
 
 /**
  * A row's own little bar on the desktop: a rounded track, filled to `p` in the
- * row's color, or, for `p === null` (a helper at work, nobody knows how far
+ * row's colors (a gradient, light to deep), or, for `p === null` (a helper at work, nobody knows how far
  * along), a short segment sliding back and forth.
  */
-export function rowBarSvg(p: number | null, width: number, color: string, track = '#ECE6E0'): string {
+export function rowBarSvg(p: number | null, width: number, colors: string | [string, string], track = '#ECE6E0', tool?: Role): string {
   const H = 8
-  const groove = `<rect width="${width}" height="${H}" rx="${H / 2}" fill="${track}"/>`
+  const icon = tool ? toolIcon(tool) : null
+  const iconW = icon ? (icon[0]?.length ?? 0) * 2 : 0
+  const iconH = icon ? icon.length * 2 : 0
+  const fullW = width + (icon ? iconW + 6 : 0)
+  const fullH = Math.max(H, iconH)
+  const y = Math.round((fullH - H) / 2)
+  const [from, to] = typeof colors === 'string' ? [colors, colors] : colors
+  const id = `rb${from.slice(1)}${to.slice(1)}`
+  const fill = from === to ? from : `url(#${id})`
+  const defs = from === to ? '' : `<defs><linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs>`
+  const groove = `<rect y="${y}" width="${width}" height="${H}" rx="${H / 2}" fill="${track}"/>`
   const body = p === null
-    ? `<rect width="${Math.round(width / 3)}" height="${H}" rx="${H / 2}" fill="${color}">`
+    ? `<rect y="${y}" width="${Math.round(width / 3)}" height="${H}" rx="${H / 2}" fill="${fill}">`
       + `<animate attributeName="x" values="0;${width - Math.round(width / 3)};0" dur="1.6s" repeatCount="indefinite"/></rect>`
-    : `<rect width="${Math.round(Math.max(0, Math.min(1, p)) * width)}" height="${H}" rx="${H / 2}" fill="${color}"/>`
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}">${groove}${body}</svg>`
+    : `<rect y="${y}" width="${Math.round(Math.max(0, Math.min(1, p)) * width)}" height="${H}" rx="${H / 2}" fill="${fill}"/>`
+  const tip = icon ? `<g transform="translate(${width + 6} 0) scale(2)" shape-rendering="crispEdges">${gridPaths(icon)}</g>` : ''
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${fullW} ${fullH}" width="${fullW}" height="${fullH}">${defs}${groove}${body}${tip}</svg>`
+}
+
+/** Each cat's tool, as pixel art: what it works with. */
+const TOOLS: Record<Role, { rows: string[]; colors: Record<string, string> }> = {
+  lead: { // a whiteboard with a rising chart
+    rows: ['GGGGGGGGGG', 'GWWWWWWWBG', 'GWWWWWWBWG', 'GWBWWWBWWG', 'GWWBWBWWWG', 'GWWWBWWWWG', 'GGGGGGGGGG', '.G......G.'],
+    colors: { G: '#9AA3AE', W: '#FFFFFF', B: '#2BA4E0' },
+  },
+  planner: { // a cup of matcha, steaming
+    rows: ['.s.s......', '..s.s.....', 'WWWWWWW...', 'WMMMMMWHH.', 'WWWWWWW.H.', 'WWWWWWWHH.', '.WWWWW....'],
+    colors: { s: '#B4BCC8', W: '#FFFFFF', M: '#8DAA62', H: '#FFFFFF' },
+  },
+  researcher: { // a magnifying glass
+    rows: ['.KKKK.....', 'KLLLLK....', 'KLWLLK....', 'KLLLLK....', '.KKKKH....', '.....HH...', '......HH..'],
+    colors: { K: '#3B3542', L: '#BFE3F5', W: '#FFFFFF', H: '#8A5A3C' },
+  },
+  coder: { // a laptop with code on its screen
+    rows: ['.GGGGGGGG.', '.GSSSSSSG.', '.GSCSSCSG.', '.GSSCCSSG.', '.GGGGGGGG.', 'GGGGGGGGGG', 'LLLLLLLLLL'],
+    colors: { G: '#C9D2DC', S: '#2E3A4E', C: '#7CE0A6', L: '#9AA6B4' },
+  },
+  tester: { // a network plug on its cable
+    rows: ['..TTTT....', '..TYYT....', '..TTTT....', '...BB.....', '...BB.....', '....BB....', '.....BBB..'],
+    colors: { T: '#DDE6EE', Y: '#E0B84A', B: '#2F7DD1' },
+  },
+  reviewer: { // a clipboard with a check
+    rows: ['...GG.....', '.NNNNNN...', '.NWWWWN...', '.NWWWEN...', '.NEWEWN...', '.NWEWWN...', '.NWWWWN...', '.NNNNNN...'],
+    colors: { G: '#9AA3AD', N: '#B07A45', W: '#FAFAFA', E: '#3FA34D' },
+  },
+  designer: { // a tablet and its pen
+    rows: ['DDDDDDD.P.', 'DSSSSSD.P.', 'DSRSYSD.P.', 'DSSGSSD.P.', 'DSSSSSD.Q.', 'DDDDDDD...'],
+    colors: { D: '#2A2D33', S: '#F4F6FA', R: '#E5508F', Y: '#F4D35E', G: '#3AA37A', P: '#E58FAE', Q: '#3B3542' },
+  },
+}
+
+/** A role's tool icon as a sprite grid, outlined in ink. */
+function toolIcon(role: Role): Grid {
+  const t = TOOLS[role]
+  return pixelArt(t.rows, t.colors)
 }
 
 /** A chunky 5 × 7 pixel face for the header's title, the letters it needs. */
@@ -319,6 +368,15 @@ function pixelText(text: string, x: number, y: number, scale: number, color: str
 
 /** Columns of the pixel face `text` takes, at scale 1. */
 const pixelWidth = (text: string) => [...text].reduce((w, ch) => w + (PIXEL_FONT[ch]?.[0]?.length ?? 3) + 1, 0)
+
+/** The faces in the header, the lead first. */
+const HEAD_ROLES: Role[] = ['lead', 'planner', 'researcher', 'coder', 'tester', 'reviewer', 'designer']
+
+/** A cat's face and ears at half size: about 28 × 22. Its first walking take unless told otherwise. */
+function catHead(role: Role, pose: Pose = 'walk', frame = 0): Grid {
+  const full = catGridFull(role, pose, frame)
+  return halfGrid(full.slice(10, 54).map(row => row.slice(18, 74)))
+}
 
 /** A cup of matcha latte, a heart in its foam. */
 const CUP = [
@@ -360,6 +418,13 @@ export function bannerSvg(width: number, summary: string, theme: Theme): string 
   const heart = width >= titleX + pixelWidth('CAT OFFICE') * scale + 40
     ? `<g transform="translate(${width - 26} ${titleY + 2}) scale(2)">${gridPaths(pixelArt(HEART, { X: '#F27B93' }, ink))}</g>`
     : ''
+  // the seven cats' faces in a row on the right, when there is room; else the heart
+  const room = width - (titleX + pixelWidth('CAT OFFICE') * scale + 16)
+  const HEAD_W = 30
+  const fits = Math.min(7, Math.floor(room / HEAD_W))
+  const heads = fits >= 3
+    ? HEAD_ROLES.slice(0, fits).map((role, i) => `<g transform="translate(${width - (fits - i) * HEAD_W - 6} ${H - 28})">${gridPaths(catHead(role))}</g>`).join('')
+    : heart
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}" shape-rendering="crispEdges">`
     + `<title>Cat Office: ${esc(summary)}</title>`
@@ -371,7 +436,7 @@ export function bannerSvg(width: number, summary: string, theme: Theme): string 
     + pixelText('CAT OFFICE', titleX, titleY, scale, ink, light)
     + `<rect x="${titleX}" y="${tagY}" width="${tagW}" height="18" rx="9" fill="${paper}" stroke="${leaf}" stroke-width="2" shape-rendering="auto"/>`
     + `<text x="${titleX + 10}" y="${tagY + 13}" font-family="system-ui, 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="${ink}" shape-rendering="auto">${esc(summary)}</text>`
-    + heart
+    + heads
     + '</svg>'
 }
 
@@ -403,13 +468,9 @@ function pixelArt(rows: readonly string[], colors: Record<string, string>, outli
   }))
 }
 
-/** The lead cat, the orange tabby of the office cats, at half size and cropped to the cat: walking, or happy when cheering. */
+/** The cat on the progress bar: the gray cat's head, stepping through its walk, smiling when cheering. */
 function walkerFrame(cheer: boolean, frame: number): Grid {
-  const g = halfGrid(catGridFull('lead', cheer ? 'done' : 'walk', frame))
-  const used = g.map((r, y) => (r.some(Boolean) ? y : -1)).filter(y => y >= 0)
-  const cols = g.flatMap(r => r.map((c, x) => (c ? x : -1))).filter(x => x >= 0)
-  const x0 = Math.min(...cols), x1 = Math.max(...cols)
-  return g.slice(used[0] ?? 0, (used.at(-1) ?? 0) + 1).map(r => r.slice(x0, x1 + 1))
+  return catHead('tester', cheer ? 'done' : 'walk', frame)
 }
 
 /**

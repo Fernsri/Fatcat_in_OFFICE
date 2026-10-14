@@ -9,6 +9,7 @@ import { helperAlert, turnAlert } from './notify'
 import type { AlertOptions } from './notify'
 import { progressOf } from './progress'
 import { cropCells, FRAME_MS, FRAMES, ROLES } from './robots'
+import { CAT_BAR } from './cats'
 import type { Crop, Pose } from './robots'
 import { startTurn } from './run'
 import { bandCatSvg, bannerSvg, barFrame, barSvg, barTheme, figureName, figureStillSvg, figureSvg, mix, robotCells, rowBarSvg, skinNamed, themeNamed, THEMES } from './stage'
@@ -397,10 +398,10 @@ export const register: Register = (on, options) => {
               </Box>
               <Box flexShrink={0}>
                 <Svg
-                  source={rowBarSvg(card.bar === null ? null : Math.round(card.bar * 100) / 100, 90, card.barColor, hex(mix(theme.paper, theme.ink, 0.07)))}
+                  source={rowBarSvg(card.bar === null ? null : Math.round(card.bar * 100) / 100, 90, card.status.startsWith('✗') ? ['#F2A08F', hex(theme.failed)] : card.key.startsWith('role:') ? card.barColor : CAT_BAR[card.robot.role], hex(mix(theme.paper, theme.ink, 0.07)), card.robot.role)}
                   alt={card.bar === null ? 'working' : `${Math.round(card.bar * 100)}%`}
-                  width={90}
-                  height={8}
+                  width={120}
+                  height={20}
                   isInteractive={card.bar === null}
                 />
               </Box>

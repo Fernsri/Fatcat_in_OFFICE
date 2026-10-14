@@ -4,6 +4,15 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 1.0.0 (2026-10-15)
+
+**Cat Office 1.0.**
+
+- Only the cats with a job get a row (the lead always has one), one row per role in a fixed order: Team Lead, Planner, Researcher, Coder, Tester, Reviewer, Designer. Several jobs for one role show the latest with "×2".
+- Each row's bar runs in that cat's own colors, light to deep (an error runs coral to red), and ends in the cat's tool: a whiteboard, a cup of matcha, a magnifying glass, a laptop, a network plug, a clipboard, a tablet and pen.
+- The header shows the seven cats' faces on the right.
+- On the progress bar above the prompt, the gray cat's head walks toward the fish and smiles when it is all done.
+
 ## 0.18.0 (2026-10-15)
 
 **No dark mode after all.**

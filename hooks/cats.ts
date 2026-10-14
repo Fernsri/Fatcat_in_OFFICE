@@ -25,6 +25,17 @@ export const CATS: Record<Role, { kind: string }> = {
   designer: { kind: 'pink-and-white cat' },
 }
 
+/** Each cat's own colors for its row's bar, light to deep, drawn from its fur. */
+export const CAT_BAR: Record<Role, [string, string]> = {
+  lead: ['#FFCB93', '#E8924A'],
+  planner: ['#B7CBE2', '#6F8BB0'],
+  researcher: ['#F2DDBF', '#C99A6A'],
+  coder: ['#FFDE76', '#F2A93B'],
+  tester: ['#D3D5D9', '#8C9097'],
+  reviewer: ['#EBCFAE', '#9A5F45'],
+  designer: ['#FFC9D6', '#E58FAE'],
+}
+
 /** The file's pose for each of the stage's, plus a thinking pose of our own: walking at work, a thought bubble in thought, happy when done, surprised on failure, asleep when idle. */
 const FILE_POSE: Record<Pose, string> = { walk: 'walk', think: 'think', done: 'happy', fail: 'surprise', idle: 'sleep' }
 
