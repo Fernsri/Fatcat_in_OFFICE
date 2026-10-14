@@ -4,6 +4,15 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.8.0 (2026-10-14)
+
+**The Cat Office: a compact layout and plain words.**
+
+- The pane is the Cat Office: on the desktop a little pixel-office header (windows, a clock, a plant) with a summary, `2 working · 1 done`; in the terminal the same as one line.
+- One thin row per agent instead of a card: a small cat, the role and task, the status and what it is doing, and the row's own little bar. The lead's bar is the whole run's progress; a helper at work gets a sliding bar, since nobody knows how far along it is; a finished one a full green bar, a failed one a full red bar.
+- Plain words: `✓ Done (34 sec)`, `✗ Error (20 sec)`, `○ Waiting for you`; beside the progress bar `1 of 2 to-dos done · 2 helpers working`. The tool counts and the list of tools used are gone from the rows.
+- The `robotSize` setting is gone: the rows always use the small figure.
+
 ## 0.7.0 (2026-10-14)
 
 **The office cats, a fork of agent-stage.**

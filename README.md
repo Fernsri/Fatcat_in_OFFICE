@@ -1,22 +1,23 @@
-# agent-office-cats: the Agents Office, with office cats
+# agent-office-cats: the Cat Office
 
-A fork of [Saharat's agent-stage](https://github.com/Saharatjj/agent-stage) that
-adds a third skin, chubby office cats, and makes it the default.
+A fork of [Saharat's agent-stage](https://github.com/Saharatjj/agent-stage) with
+chubby office cats, a compact layout and plain, simple words.
 
 ![The office cats: seven roles in five poses](docs/office-cats.png)
 
-A Claude Code mod that shows what Claude and its subagents are doing while they
-work: a card per agent with an animated pixel figure for its role, and a 0 to
-100% progress bar above the prompt. Works in the terminal and in the desktop
-app's Code tab.
+A Claude Code mod that shows what Claude and its helpers (subagents) are doing
+while they work: a thin row per agent with an animated pixel figure for its
+role, and a 0 to 100% progress bar above the prompt. Works in the terminal and
+in the desktop app's Code tab.
 
 ## What you see
 
-- **A card per agent.** The lead (Main) first, then up to six subagents, running ones first. Each card shows:
+- **A pixel-office header** with "Cat Office" and a summary: `2 working · 1 done`. The terminal shows the same as one line.
+- **A thin row per agent.** The lead (Main) first, then up to six helpers, running ones first. Each row shows:
   - the task (for Main, your request)
-  - the status: `● Working`, `◐ Thinking`, `✓ Done in 34s`, `✗ Failed after 20s` or `○ Idle`, with its tool-call count
+  - the status: `● Working`, `◐ Thinking`, `✓ Done (34 sec)`, `✗ Error (20 sec)` or `○ Waiting for you`
   - what it is doing right now, in a few words: "Reading progress.ts", "Running npm test"
-  - the tools, MCP servers and skills it used: `Tools Read ×3, Grep · MCP playwright · Skills pdf`
+  - its own little bar: the whole run's progress for Main; for a helper at work a sliding bar, since nobody knows how far along it is; full green when it is done, full red on an error
 - **A figure per role**, chosen from the subagent's type and description:
 
   | Role | Office cats (default) | Space crew | Robots |
@@ -32,7 +33,7 @@ app's Code tab.
   The cats wear overalls in their role's color.
 
   Figures walk while working, think after a quiet spell, cheer when done and slump on failure.
-- **Sized to the terminal.** The figures shrink to fit every card on screen: your chosen size, then the bust, the head only, then half size. With more agents than that fits, the cards keep their small figures and the pane scrolls.
+- **Small in the terminal.** Each row's figure is head and shoulders at half size; a pane too narrow for it shows the text alone, and more rows than fit scroll.
 - **A progress bar** above the prompt: done tasks over all tasks when Claude keeps a plan, else finished subagents over all, else an estimate from tool calls. It only moves forward during a turn and holds at 95% until the turn is done.
 
 ## Install
@@ -55,7 +56,6 @@ Set them with `/plugin configure agent-office-cats@jitapa-mods` in a terminal se
 | Setting | Values | Default |
 | --- | --- | --- |
 | `skin` | `office-cats`, `space-crew`, `robots` | `office-cats` |
-| `robotSize` | `bust` (head and bubble, 28 × 9 cells), `full` (32 × 16 cells); terminal only | `bust` |
 | `backdrop` | `skin` (the figures' own), `terminal` (your terminal's background) | `skin` |
 | `theme` | `neon`, `ocean`, `sunset`, `mono` (header and bar colors) | `neon` |
 | `fps` | 4 to 30, how often the terminal repaints | `12` |

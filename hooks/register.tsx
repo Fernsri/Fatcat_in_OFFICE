@@ -3,13 +3,13 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { StageAgent, StageRun, StageTask } from '../types'
 import { addUsed, describeCall, safeText, usedOf } from './activity'
-import { bandLabel, buildCards, robotOf, visibleSig } from './cards'
-import { fitPane } from './fit'
+import { bandLabel, buildCards, officeSummary, robotOf, visibleSig } from './cards'
+import { fitRow, rowBarColumns } from './fit'
 import { progressOf } from './progress'
-import { BUST, cropCells, FRAME_MS, FRAMES, FULL, ROLES } from './robots'
+import { cropCells, FRAME_MS, FRAMES, ROLES } from './robots'
 import type { Crop, Pose } from './robots'
 import { startTurn } from './run'
-import { barFrame, barSvg, figureName, figureStillSvg, figureSvg, robotCells, skinNamed, themeNamed, THEMES } from './stage'
+import { bannerSvg, barFrame, barSvg, barTheme, figureName, figureStillSvg, figureSvg, robotCells, rowBarSvg, skinNamed, themeNamed, THEMES } from './stage'
 import type { Skin, Theme } from './stage'
 
 const PANE = 'agent-office-cats'
@@ -41,7 +41,6 @@ const POSE_WORDS: Record<Pose, string> = { walk: 'at work', think: 'thinking', d
 let theme: Theme = THEMES.neon
 let fps = 12
 let frameMs = 83
-let crop: Crop = BUST
 let transparent = false
 let skin: Skin = 'robots'
 let snap: StageRun = EMPTY
@@ -53,7 +52,9 @@ let lastRedrawAt = -Infinity
 let drawnSig = '' // what the pane and band last showed
 let lastFrame = -1
 let timer: { cancel: () => void } | null = null
-let pane: { keys: string[]; crop: Crop } | null = null // terminal cards whose figures are painted per frame, and their size
+// terminal rows whose figures and bars are painted per frame: the figures' size,
+// and each row's bar (the lead's follows the run's progress)
+let pane: { keys: string[]; crop: Crop | null; bars: { key: string; p: number | null; color: string }[]; barColumns: number } | null = null
 let band: { requestId: string; columns: number } | null = null // the terminal bar, painted per frame
 let peak = { turn: -1, p: 0 } // the highest progress shown this turn
 
@@ -108,14 +109,22 @@ function paint($: EngineInterface) {
   const frame = frameAt(t)
   if (frame !== lastFrame) {
     lastFrame = frame
-    for (const key of pane?.keys ?? []) {
+    for (const key of pane?.crop ? pane.keys : []) {
       const who = robotOf(snap, key, nowMs)
-      if (!who || !pane) continue
+      if (!who || !pane?.crop) continue
       const cells = robotCells(who.role, who.pose, frame, pane.crop, transparent, skin)
       void $.ui.blit({ requestId: PANE, key: `bot-${key}`, cells }).then(r => {
         if (r.deny) pane = null // closed or redrawn: the next render re-seats it
       })
     }
+  }
+  for (const bar of pane?.bars ?? []) {
+    if (!pane) break
+    const p = bar.key === 'main' ? shownProgress(snap) : bar.p
+    const cells = barFrame(p, t, pane.barColumns, barTheme(theme, bar.color))
+    void $.ui.blit({ requestId: PANE, key: `bar-${bar.key}`, cells }).then(r => {
+      if (r.deny) pane = null
+    })
   }
   if (band) {
     const cells = barFrame(shownProgress(snap), t, band.columns, theme)
@@ -151,7 +160,6 @@ export const register: Register = (on, options) => {
   theme = themeNamed(String(options.theme))
   fps = clamp(Number(options.fps) || 12, 4, 30)
   frameMs = Math.round(1000 / fps)
-  crop = options.robotSize === 'full' ? FULL : BUST
   transparent = options.backdrop === 'terminal'
   skin = skinNamed(String(options.skin))
   timer = null // a reload drops the old environment's timers
@@ -159,18 +167,18 @@ export const register: Register = (on, options) => {
   snapLive = false
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'office', description: 'Open the Agents Office: Main and its subagents at work' })
+    await $.command.register({ name: 'office', description: 'Open the Cat Office: Claude and its helpers at work' })
     snap = await read($, runAtom)
     snapLive = true
     nowMs = await $.clock.now()
-    if (options.autoOpenPane !== false) void $.ui.open({ id: PANE, title: 'Agents Office' })
+    if (options.autoOpenPane !== false) void $.ui.open({ id: PANE, title: 'Cat Office' })
     if (isLive(snap)) ensureLoop($)
     return next(e)
   })
 
   on('command.run', { command: 'office' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'Agents Office' })
-    return { text: 'Agents Office opened.' }
+    await $.ui.open({ id: PANE, title: 'Cat Office' })
+    return { text: 'Cat Office opened.' }
   })
 
   on('session.end', async ($, e, next) => {
@@ -270,56 +278,58 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // ── the Agents Office pane: one card per agent, each with its figure ────────
+  // ── the Cat Office pane: a header, then one thin row per agent ──────────────
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const stored = await read($, runAtom) // read to be redrawn when $.state is written
     const r = snapLive ? snap : stored
     const now = await $.clock.now()
     nowMs = now
     lastRedrawAt = now
-    drawnSig = visibleSig(r, now, shownProgress(r), theme)
-    const cards = buildCards(r, now, e.surface === 'terminal', theme)
+    const p = shownProgress(r)
+    drawnSig = visibleSig(r, now, p, theme)
+    const cards = buildCards(r, now, e.surface === 'terminal', theme, p)
+    const summary = officeSummary(cards)
 
     if (e.surface === 'terminal') {
-      // Figures sized to the room the terminal gives the pane: the biggest
-      // that fits every card, down to half size; past that the pane scrolls.
+      // Each row: the small figure, then the title, the status and what it is
+      // doing, and the row's own bar; text alone when the pane is too narrow.
       const { Box, Text, Raster } = $.ui.resolve(e)
       const frame = frameAt(t)
-      const fit = fitPane(cards.length, e.props.scroll.bodyRows, e.props.bodyColumns, crop)
-      const figure = fit.figure
+      const figure = fitRow(e.props.bodyColumns)
       const art = figure ? cropCells(figure) : null
-      pane = figure ? { keys: cards.map(c => c.key), crop: figure } : null
+      const barColumns = rowBarColumns(e.props.bodyColumns, figure)
+      pane = { keys: cards.map(c => c.key), crop: figure, bars: cards.map(c => ({ key: c.key, p: c.bar, color: c.barColor })), barColumns }
       if (isLive(r)) ensureLoop($)
       return (
         <Box flexDirection="column">
-          <Text bold color={hex(theme.main)} wrap="truncate-end">Agents Office</Text>
+          <Box flexDirection="row" gap={1}>
+            <Box flexShrink={0}><Text bold color={hex(theme.main)}>Cat Office</Text></Box>
+            <Text dimColor wrap="truncate-end">{summary}</Text>
+          </Box>
           {cards.map(card => {
             const role = ROLES[card.robot.role]
             return (
-              <Box key={card.key} flexDirection="row" borderStyle="round" borderColor={card.live ? role.color : undefined} gap={1}>
+              <Box key={card.key} flexDirection="row" gap={1} marginTop={1}>
                 {figure && art ? (
-                  <Box flexDirection="column" alignItems="center" flexShrink={0}>
+                  <Box flexShrink={0}>
                     <Raster
                       key={`bot-${card.key}`}
                       columns={art.columns}
                       rows={art.rows}
                       cells={robotCells(card.robot.role, card.robot.pose, frame, figure, transparent, skin)}
                     />
-                    {fit.labelBelow ? <Text bold color={role.color} wrap="truncate-end">{role.label}</Text> : null}
                   </Box>
                 ) : null}
-                <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} paddingX={1}>
-                  {fit.labelBelow ? (
-                    <Text bold wrap="truncate-end">{card.title}</Text>
-                  ) : (
-                    <Box flexDirection="row" gap={1}>
-                      <Box flexShrink={0}><Text bold color={role.color}>{role.label}</Text></Box>
-                      <Box flexGrow={1} flexShrink={1} minWidth={0}><Text bold wrap="truncate-end">{card.title}</Text></Box>
-                    </Box>
-                  )}
-                  <Text color={card.statusColor} wrap="truncate-end">{card.status}</Text>
-                  <Text wrap="truncate-end">{card.doing}</Text>
-                  <Text dimColor wrap="truncate-end">{card.used}</Text>
+                <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
+                  <Box flexDirection="row" gap={1}>
+                    <Box flexShrink={0}><Text bold color={role.color}>{role.label}</Text></Box>
+                    <Box flexGrow={1} flexShrink={1} minWidth={0}><Text wrap="truncate-end">{card.title}</Text></Box>
+                  </Box>
+                  <Box flexDirection="row" gap={1}>
+                    <Box flexShrink={0}><Text color={card.statusColor}>{card.status}</Text></Box>
+                    <Box flexGrow={1} flexShrink={1} minWidth={0}><Text dimColor wrap="truncate-end">{card.doing}</Text></Box>
+                  </Box>
+                  <Raster key={`bar-${card.key}`} columns={barColumns} rows={1} cells={barFrame(card.bar, t, barColumns, barTheme(theme, card.barColor))} />
                 </Box>
               </Box>
             )
@@ -328,33 +338,51 @@ export const register: Register = (on, options) => {
       )
     }
 
-    // Desktop, editor and phone draw SVG. A working figure is a self-animating
-    // drawing; a done, failed or idle one is a still picture, which a redraw
-    // leaves in place, so near the end of a run almost nothing can flash.
+    // Desktop, editor and phone draw SVG: the pixel-office header, then the
+    // rows. A working figure and a working helper's bar animate by themselves;
+    // a done, failed or idle figure is a still picture, which a redraw leaves
+    // in place, so near the end of a run almost nothing can flash.
     const { Box, Text, Svg } = $.ui.resolve(e)
+    const width = clamp(e.props.bodyColumns * 8, 240, 720)
     return (
       <Box flexDirection="column" gap={1}>
-        <Text bold color={hex(theme.main)}>Agents Office</Text>
+        <Svg source={bannerSvg(width, summary)} alt={`Cat Office: ${summary}`} width={width} height={56} />
         {cards.map(card => {
           const role = ROLES[card.robot.role]
           const moving = card.live && animated(card.robot.pose)
           return (
-            <Box key={card.key} flexDirection="row" borderStyle="round" borderColor={card.live ? role.color : undefined} gap={2} paddingX={1} paddingY={1}>
-              <Box flexDirection="column" alignItems="center" flexShrink={0}>
-                <Svg
-                  source={moving ? figureSvg(skin, card.robot.role, card.robot.pose) : figureStillSvg(skin, card.robot.role, card.robot.pose)}
-                  alt={`${figureName(skin, card.robot.role)}, ${POSE_WORDS[card.robot.pose]}`}
-                  width={96}
-                  height={96}
-                  isInteractive={moving}
-                />
-                <Text bold color={role.color} wrap="truncate-end">{role.label}</Text>
-              </Box>
+            <Box key={card.key} flexDirection="row" alignItems="center" gap={1}>
+              <Svg
+                source={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 52" width="4" height="52"><rect width="4" height="52" rx="2" fill="${card.live ? role.color : '#CFC8C2'}"/></svg>`}
+                alt={card.live ? 'at work' : 'resting'}
+                width={4}
+                height={52}
+              />
+              <Svg
+                source={moving ? figureSvg(skin, card.robot.role, card.robot.pose) : figureStillSvg(skin, card.robot.role, card.robot.pose)}
+                alt={`${figureName(skin, card.robot.role)}, ${POSE_WORDS[card.robot.pose]}`}
+                width={52}
+                height={52}
+                isInteractive={moving}
+              />
               <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
-                <Text bold wrap="truncate-end">{card.title}</Text>
-                <Text color={card.statusColor} wrap="truncate-end">{card.status}</Text>
-                <Text wrap="truncate-end">{card.doing}</Text>
-                <Text dimColor wrap="truncate-end">{card.used}</Text>
+                <Box flexDirection="row" gap={1}>
+                  <Box flexShrink={0}><Text bold color={role.color}>{role.label}</Text></Box>
+                  <Box flexGrow={1} flexShrink={1} minWidth={0}><Text wrap="truncate-end">{card.title}</Text></Box>
+                </Box>
+                <Box flexDirection="row" gap={1}>
+                  <Box flexShrink={0}><Text color={card.statusColor}>{card.status}</Text></Box>
+                  <Box flexGrow={1} flexShrink={1} minWidth={0}><Text dimColor wrap="truncate-end">{card.doing}</Text></Box>
+                </Box>
+              </Box>
+              <Box flexShrink={0}>
+                <Svg
+                  source={rowBarSvg(card.bar === null ? null : Math.round(card.bar * 100) / 100, 90, card.barColor)}
+                  alt={card.bar === null ? 'working' : `${Math.round(card.bar * 100)}%`}
+                  width={90}
+                  height={8}
+                  isInteractive={card.bar === null}
+                />
               </Box>
             </Box>
           )

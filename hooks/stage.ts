@@ -242,3 +242,50 @@ export function barSvg(p: number, width: number, theme: Theme): string {
     '</svg>'
   )
 }
+
+/** A theme whose bar is one color: a row's bar in the terminal, in its role's color. */
+export function barTheme(theme: Theme, color: string): Theme {
+  const c = parseInt(color.slice(1), 16)
+  return { ...theme, barFrom: c, barTo: mix(c, 0xffffff, 0.35) }
+}
+
+/**
+ * A row's own little bar on the desktop: a rounded track, filled to `p` in the
+ * row's color, or, for `p === null` (a helper at work, nobody knows how far
+ * along), a short segment sliding back and forth.
+ */
+export function rowBarSvg(p: number | null, width: number, color: string): string {
+  const H = 8
+  const track = `<rect width="${width}" height="${H}" rx="${H / 2}" fill="#ECE6E0"/>`
+  const body = p === null
+    ? `<rect width="${Math.round(width / 3)}" height="${H}" rx="${H / 2}" fill="${color}">`
+      + `<animate attributeName="x" values="0;${width - Math.round(width / 3)};0" dur="1.6s" repeatCount="indefinite"/></rect>`
+    : `<rect width="${Math.round(Math.max(0, Math.min(1, p)) * width)}" height="${H}" rx="${H / 2}" fill="${color}"/>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}">${track}${body}</svg>`
+}
+
+/**
+ * The pane's header on the desktop: a little pixel office (two windows, a
+ * plant, a clock) with the title and a summary on the wall.
+ */
+export function bannerSvg(width: number, summary: string): string {
+  const H = 56
+  const INK = '#2A2238'
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const window = (x: number) => `<rect x="${x}" y="10" width="44" height="30" fill="#BFE3F5" stroke="${INK}" stroke-width="3"/>`
+    + `<line x1="${x + 22}" y1="10" x2="${x + 22}" y2="40" stroke="${INK}" stroke-width="2"/>`
+    + `<rect x="${x + 4}" y="14" width="8" height="4" fill="#FFFFFF"/>`
+  const right = width - 24
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}" shape-rendering="crispEdges">`
+    + `<rect width="${width}" height="${H}" fill="#FBF3EE"/>`
+    + `<rect y="${H - 6}" width="${width}" height="6" fill="#E9DCCF"/><rect y="${H - 6}" width="${width}" height="2" fill="${INK}"/>`
+    + window(12) + window(64)
+    + `<text x="124" y="27" font-family="system-ui, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="${INK}">Cat Office</text>`
+    + `<text x="124" y="44" font-family="system-ui, 'Segoe UI', sans-serif" font-size="12" fill="#6D6776">${esc(summary)}</text>`
+    + (width >= 300
+      ? `<circle cx="${right - 34}" cy="20" r="9" fill="#FFFFFF" stroke="${INK}" stroke-width="2"/><line x1="${right - 34}" y1="20" x2="${right - 34}" y2="14" stroke="${INK}" stroke-width="2"/><line x1="${right - 34}" y1="20" x2="${right - 30}" y2="20" stroke="${INK}" stroke-width="2"/>`
+        + `<rect x="${right - 4}" y="${H - 18}" width="12" height="12" fill="#C9844F" stroke="${INK}" stroke-width="2"/>`
+        + `<rect x="${right - 2}" y="${H - 30}" width="8" height="12" fill="#3AA37A" stroke="${INK}" stroke-width="2"/><rect x="${right - 8}" y="${H - 26}" width="6" height="6" fill="#3AA37A" stroke="${INK}" stroke-width="2"/><rect x="${right + 6}" y="${H - 28}" width="6" height="6" fill="#3AA37A" stroke="${INK}" stroke-width="2"/>`
+      : '')
+    + '</svg>'
+}

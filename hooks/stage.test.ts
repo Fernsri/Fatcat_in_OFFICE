@@ -3,14 +3,14 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { StageRun } from '../types'
 import { progressOf } from './progress'
 import { startTurn } from './run'
-import { buildCards, visibleSig } from './cards'
-import { cardRows, fitPane } from './fit'
+import { bandLabel, buildCards, officeSummary, visibleSig } from './cards'
+import { fitRow, rowBarColumns, rowRows } from './fit'
 import { addUsed, cleanTask, describeCall, mcpParts, safeText, usedLine, usedOf } from './activity'
 import { BUST, FRAMES, FULL, HEAD, MINI, ROLES, cropCells, poseOf, robotGrid, robotSvg, roleOf } from './robots'
 import type { Pose, Role } from './robots'
 import { astroGrid } from './astronauts'
 import { catGrid } from './cats'
-import { THEMES, barFrame, barSvg, figureName, figureStillSvg, figureSvg, robotCells, skinNamed, stageAgents } from './stage'
+import { THEMES, bannerSvg, barFrame, barSvg, figureName, rowBarSvg, figureStillSvg, figureSvg, robotCells, skinNamed, stageAgents } from './stage'
 
 const RUN: StageRun = {
   isWorking: true,
@@ -246,9 +246,36 @@ test('a change nobody can see is not a visible change; one they can see is', asy
   expect(visibleSig(stamped, 10_000, 0.5, THEMES.neon)).toBe(base)
   const doing = { ...RUN, agents: RUN.agents.map(a => ({ ...a, doing: 'Reading x.ts' })) }
   expect(visibleSig(doing, 10_000, 0.5, THEMES.neon) === base).toBe(false)
-  const cards = buildCards(RUN, 10_000, false, THEMES.neon)
+  const cards = buildCards(RUN, 10_000, false, THEMES.neon, 0.5)
   expect(cards.map(c => c.key)).toEqual(['main', 'a1', 'a2'])
-  expect(cards.some(c => /\d+s ·/.test(c.status) && c.live)).toBe(false) // no ticking seconds off the terminal
+  expect(cards.some(c => /\d+ sec/.test(c.status) && c.live)).toBe(false) // no ticking seconds off the terminal
+})
+
+test('rows speak plain words, and each has its own bar', async () => {
+  const cards = buildCards(RUN, 10_000, true, THEMES.neon, 0.5)
+  expect(cards[0]?.status).toBe('● Working · 10 sec')
+  expect(cards[0]?.bar).toBe(0.5) // the lead's bar is the whole run's progress
+  expect(cards[1]?.bar).toBe(null) // a helper at work: nobody knows how far along
+  expect(cards[2]?.status).toBe('✓ Done (1 sec)')
+  expect(cards[2]?.bar).toBe(1)
+  const failed = buildCards({ ...RUN, agents: [{ ...RUN.agents[1]!, status: 'failed' }] }, 10_000, false, THEMES.neon, 0.5)
+  expect(failed[1]?.status).toBe('✗ Error (1 sec)')
+  expect(failed[1]?.barColor).toBe('#e5534b')
+  expect(buildCards({ ...RUN, isWorking: false, agents: [] }, 10_000, false, THEMES.neon, 1)[0]?.status).toBe('○ Waiting for you')
+  expect(officeSummary(cards)).toBe('2 working · 1 done')
+  expect(officeSummary(failed)).toBe('1 working · 1 error')
+  const tasks: StageRun['tasks'] = [{ id: '1', title: 'a', status: 'completed' }, { id: '2', title: 'b', status: 'pending' }]
+  expect(bandLabel({ ...RUN, tasks }, 10_000, 0.5, true)).toBe('50% · 1 of 2 to-dos done · 10 sec · 1 helper working')
+})
+
+test('the desktop row bar slides while a helper works and fills when it is done', async () => {
+  expect(rowBarSvg(null, 90, '#D9443A')).toContain('<animate attributeName="x"')
+  expect(rowBarSvg(0.5, 90, '#D9443A')).toContain('<rect width="45" height="8" rx="4" fill="#D9443A"/>')
+  expect(rowBarSvg(1, 90, '#5ba53c')).not.toContain('<animate')
+  const banner = bannerSvg(400, '2 working · <1> done')
+  expect(banner).toContain('Cat Office')
+  expect(banner).toContain('2 working · &lt;1&gt; done')
+  expect(banner.length).toBeLessThan(131072)
 })
 
 const SCROLL = { offset: 0, bodyRows: 30 }
@@ -262,16 +289,16 @@ test('a quick gap between tool calls stays Working; only a long quiet gap shows 
     provider: { plugin: 'engine', tier: 'core' }, parentModel: 'claude-opus-5-5', background: false, fork: false,
   })
   await $.tool.call({ tool: 'Grep', pattern: 'size', agentId: 'sub-9' } as never)
-  const props = { title: 'Agents Office', isFocused: false, bodyColumns: 80, placement: 'dock' as const, scroll: SCROLL, view: {} }
+  const props = { title: 'Cat Office', isFocused: false, bodyColumns: 80, placement: 'dock' as const, scroll: SCROLL, view: {} }
 
   let pane = await $.ui.mount({ plugin: 'agent-office-cats', surface: 'desktop', component: 'Pane', requestId: 'agent-office-cats', props })
-  expect(await pane.find({ type: 'Text', text: /● Working · 1 tool call/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /● Working/ })).toBeDefined()
   expect(await pane.find({ type: 'Text', text: /Searching for "size"/ })).toBeDefined()
   await pane.unmount()
 
   await clock.advance(3_000)
   pane = await $.ui.mount({ plugin: 'agent-office-cats', surface: 'desktop', component: 'Pane', requestId: 'agent-office-cats', props })
-  expect(await pane.find({ type: 'Text', text: /◐ Thinking · 1 tool call/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /◐ Thinking/ })).toBeDefined()
   expect(await pane.find({ type: 'Text', text: /Last: Searching for "size"/ })).toBeDefined()
   await pane.unmount()
 })
@@ -293,15 +320,16 @@ test('a spawned subagent and the plan show on the pane and the band', async ($, 
   for (const surface of ['terminal', 'desktop'] as const) {
     const pane = await $.ui.mount({
       plugin: 'agent-office-cats', surface, component: 'Pane', requestId: 'agent-office-cats',
-      props: { title: 'Agents Office', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: SCROLL, view: {} },
+      props: { title: 'Cat Office', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: SCROLL, view: {} },
     })
-    expect(await pane.find({ type: 'Text', text: /Agents Office/ })).toBeDefined()
+    if (surface === 'terminal') expect(await pane.find({ type: 'Text', text: /Cat Office/ })).toBeDefined()
+    // the desktop's header is the pixel office; then each row: its stripe, its figure, its bar
+    else expect(await pane.findAll({ type: 'Svg' })).toHaveLength(1 + 2 * 3)
     expect(await pane.find({ type: 'Text', text: /Task 1: review the auth change/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /look around/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /Reviewer/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /Team Lead/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /Thinking/ })).toBeDefined()
-    expect(await pane.find({ type: 'Text', text: /Tools TodoWrite/ })).toBeDefined()
     await pane.unmount()
 
     const band = await $.ui.mount({
@@ -309,32 +337,24 @@ test('a spawned subagent and the plan show on the pane and the band', async ($, 
       props: { hasSurvey: false, isWorking: true, maxRows: 4, bodyColumns: 100, scroll: SCROLL, view: {} },
     })
     expect(await band.find({ type: 'Text', text: /50%/ })).toBeDefined()
-    expect(await band.find({ type: 'Text', text: /1\/2 tasks/ })).toBeDefined()
-    expect(await band.find({ type: 'Text', text: /1 agent/ })).toBeDefined()
+    expect(await band.find({ type: 'Text', text: /1 of 2 to-dos done/ })).toBeDefined()
+    expect(await band.find({ type: 'Text', text: /1 helper working/ })).toBeDefined()
     await band.unmount()
   }
 })
 
-test('the terminal pane picks the biggest figure that fits, and keeps a small one rather than none', async () => {
-  // header + 3 cards: full figures need 3*19, the bust 3*12, the head 3*10, half size 3*7
-  expect(fitPane(3, 80, 100, FULL)).toEqual({ figure: FULL, labelBelow: true })
-  expect(fitPane(3, 40, 100, FULL)).toEqual({ figure: BUST, labelBelow: true })
-  expect(fitPane(3, 40, 100, BUST)).toEqual({ figure: BUST, labelBelow: true })
-  expect(fitPane(3, 31, 100, BUST)).toEqual({ figure: HEAD, labelBelow: false })
-  expect(fitPane(4, 37, 100, BUST)).toEqual({ figure: MINI, labelBelow: false })
-  expect(fitPane(7, 22, 75, BUST)).toEqual({ figure: MINI, labelBelow: false }) // too many to fit: small figures, and it scrolls
-  expect(fitPane(3, 40, 40, BUST)).toEqual({ figure: MINI, labelBelow: false }) // too narrow for a big figure, not a small one
-  expect(fitPane(3, 40, 30, BUST)).toEqual({ figure: null, labelBelow: false }) // too narrow for any figure
-  for (let rows = 2; rows <= 90; rows++) {
-    for (let agents = 1; agents <= 7; agents++) {
-      const fit = fitPane(agents, rows, 120, FULL)
-      expect(fit.figure).toBeDefined()
-      if (fit.figure !== MINI) expect(1 + agents * cardRows(fit.figure) <= rows).toBe(true) // anything bigger fits whole
-    }
-  }
+test('a terminal row carries the small figure when there is room beside it, else text alone', async () => {
+  expect(fitRow(80)).toBe(MINI)
+  expect(fitRow(35)).toBe(MINI) // 14 for the figure, 1 gap, 20 for the text
+  expect(fitRow(34)).toBe(null)
+  expect(rowRows(MINI)).toBe(5)
+  expect(rowRows(null)).toBe(3)
+  expect(rowBarColumns(80, MINI)).toBe(30)
+  expect(rowBarColumns(40, MINI)).toBe(25)
+  expect(rowBarColumns(10, null)).toBe(10)
 })
 
-test('a short terminal gets smaller figures, never cards without them', async ($, on) => {
+test('a terminal row has its figure and its bar, and a narrow pane its text alone', async ($, on) => {
   mock.clock(on, { now: 1_000 })
   on('agent.spawn', async () => ({ model: 'claude-opus-5-5', agentId: 'sub-2' }))
   await $.agent.spawn({
@@ -343,19 +363,20 @@ test('a short terminal gets smaller figures, never cards without them', async ($
   })
   const mount = (bodyRows: number, bodyColumns = 80) => $.ui.mount({
     plugin: 'agent-office-cats', surface: 'terminal', component: 'Pane', requestId: 'agent-office-cats',
-    props: { title: 'Agents Office', isFocused: false, bodyColumns, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
+    props: { title: 'Cat Office', isFocused: false, bodyColumns, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
   })
 
-  for (const rows of [30, 16, 5]) {
+  for (const rows of [30, 5]) {
     const pane = await mount(rows)
-    expect(await pane.findAll({ type: 'Raster' })).toHaveLength(2)
+    expect(await pane.findAll({ type: 'Raster' })).toHaveLength(4) // two figures, two bars
     expect(await pane.find({ type: 'Text', text: /Tester/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /Task 1: test the build/ })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: /working/ })).toBeDefined()
     await pane.unmount()
   }
 
   const narrow = await mount(30, 30)
-  expect(await narrow.findAll({ type: 'Raster' })).toHaveLength(0)
+  expect(await narrow.findAll({ type: 'Raster' })).toHaveLength(2) // the bars stay
   expect(await narrow.find({ type: 'Text', text: /Tester/ })).toBeDefined()
   await narrow.unmount()
 })

@@ -1,9 +1,9 @@
-// What each card shows: title, status, what it is doing, what it used, and its
-// figure. Pure, no `$`: the pane draws these, and the hooks compare them to
+// What each row shows: title, status, what it is doing, its own little bar,
+// and its figure. Pure, no `$`: the pane draws these, and the hooks compare them to
 // decide whether anything on screen changed at all.
 
-import type { StageAgent, StageRun } from '../types'
-import { cleanTask, usedLine } from './activity'
+import type { StageRun } from '../types'
+import { cleanTask } from './activity'
 import { poseOf, ROLES, roleOf } from './robots'
 import type { Pose, Role } from './robots'
 import { stageAgents } from './stage'
@@ -33,87 +33,91 @@ export function robotOf(run: StageRun, key: string, now: number): { role: Role; 
 export type Card = {
   key: string
   title: string
-  /** Working right now: its border takes the role color and its figure animates. */
+  /** Working right now: its row takes the role color and its figure animates. */
   live: boolean
   status: string
   statusColor: string
   doing: string
-  used: string
+  /** The row's own bar: 0..1, or null while a helper works (nobody knows how far along it is). */
+  bar: number | null
+  barColor: string
   robot: { role: Role; pose: Pose }
 }
 
 const hex = (c: number) => '#' + c.toString(16).padStart(6, '0')
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 const shorten = (text: string, n: number) => (text.length > n ? text.slice(0, n - 1) + '…' : text)
-const callsOf = (a: StageAgent) => a.calls ?? (a.used ?? []).reduce((n, u) => n + u.count, 0)
 
 /**
- * The cards, the lead first. `ticking` adds live elapsed seconds to running
- * cards: the terminal redraws them cheaply every second; elsewhere a ticking
- * number would rebuild the drawings each second, so running cards show counts
- * and finished ones their duration.
+ * The rows, the lead first. `p` is the whole run's progress, the lead's bar.
+ * `ticking` adds live elapsed seconds to running rows: the terminal redraws
+ * them cheaply every second; elsewhere a ticking number would rebuild the
+ * drawings each second, so running rows show none and finished ones their time.
  */
-export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Theme): Card[] {
+export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Theme, p: number): Card[] {
   const secs = (from: number, to: number | null) => Math.max(0, Math.round(((to ?? now) - from) / 1000))
-  const elapsed = (from: number) => (ticking ? ` · ${secs(from, null)}s` : '')
-  const mainCalls = r.mainCalls ?? (r.mainUsed ?? []).reduce((n, u) => n + u.count, 0)
+  const elapsed = (from: number) => (ticking ? ` · ${secs(from, null)} sec` : '')
   const mainQuiet = isQuiet(r.mainActivity, r.mainActiveAt ?? r.turnStartedAt, now)
   const request = cleanTask(r.mainTask ?? '')
+  const done = hex(theme.done)
 
   const lead: Card = {
     key: 'main',
     title: request ?? (r.isWorking ? 'Leading the team' : 'Waiting for your next request'),
     live: r.isWorking,
-    status: !r.isWorking
-      ? '○ Idle'
-      : mainQuiet
-        ? `◐ Thinking${elapsed(r.turnStartedAt)} · ${plural(mainCalls, 'tool call')}`
-        : `● Working${elapsed(r.turnStartedAt)} · ${plural(mainCalls, 'tool call')}`,
-    statusColor: r.isWorking ? ROLES.lead.color : hex(theme.done),
+    status: !r.isWorking ? '○ Waiting for you' : mainQuiet ? `◐ Thinking${elapsed(r.turnStartedAt)}` : `● Working${elapsed(r.turnStartedAt)}`,
+    statusColor: r.isWorking ? ROLES.lead.color : done,
     doing: !r.isWorking
       ? r.mainDoing ? `Last: ${r.mainDoing}` : 'Ready for your next request'
       : mainQuiet
         ? r.mainDoing ? `Last: ${r.mainDoing}` : 'Reading your request'
         : r.mainDoing || 'Working',
-    used: usedLine(r.mainUsed) || 'No tools used yet',
+    bar: p,
+    barColor: r.isWorking ? ROLES.lead.color : done,
     robot: robotOf(r, 'main', now) ?? { role: 'lead', pose: 'idle' },
   }
 
   const agents = stageAgents(r).map((a): Card => {
     const quiet = isQuiet(a.activity, a.lastActiveAt ?? a.startedAt, now)
-    const calls = plural(callsOf(a), 'tool call')
+    const color = a.status === 'failed' ? hex(theme.failed) : a.status === 'done' ? done : ROLES[roleOf(a.type, a.label)].color
     return {
       key: a.id,
       title: `Task ${r.agents.indexOf(a) + 1}: ${a.label}`,
       live: a.status === 'running',
       status: a.status === 'done'
-        ? `✓ Done in ${secs(a.startedAt, a.endedAt)}s · ${calls}`
+        ? `✓ Done (${secs(a.startedAt, a.endedAt)} sec)`
         : a.status === 'failed'
-          ? `✗ Failed after ${secs(a.startedAt, a.endedAt)}s · ${calls}`
-          : quiet
-            ? `◐ Thinking${elapsed(a.startedAt)} · ${calls}`
-            : `● Working${elapsed(a.startedAt)} · ${calls}`,
-      statusColor: a.status === 'failed' ? hex(theme.failed) : a.status === 'done' ? hex(theme.done) : ROLES[roleOf(a.type, a.label)].color,
+          ? `✗ Error (${secs(a.startedAt, a.endedAt)} sec)`
+          : quiet ? `◐ Thinking${elapsed(a.startedAt)}` : `● Working${elapsed(a.startedAt)}`,
+      statusColor: color,
       doing: a.status === 'running' && !quiet
         ? a.doing || 'Working'
         : a.doing ? `Last: ${a.doing}` : `Starting: ${shorten(a.prompt ?? '', 70)}`,
-      used: usedLine(a.used) || 'No tools used yet',
+      bar: a.status === 'running' ? null : 1,
+      barColor: color,
       robot: robotOf(r, a.id, now) ?? { role: 'lead', pose: 'idle' },
     }
   })
   return [lead, ...agents]
 }
 
-/** The words beside the progress bar: "50% · 1/2 tasks · 2 agents · Grep". */
+/** The words under the pane's title: "2 working · 1 done", "1 error". */
+export function officeSummary(cards: readonly Card[]): string {
+  const working = cards.filter(c => c.live).length
+  const done = cards.filter(c => c.key !== 'main' && c.status.startsWith('✓')).length
+  const errors = cards.filter(c => c.status.startsWith('✗')).length
+  const parts = [working ? `${working} working` : '', done ? `${done} done` : '', errors ? `${errors} error${errors === 1 ? '' : 's'}` : '']
+  return parts.filter(Boolean).join(' · ') || 'All quiet'
+}
+
+/** The words beside the progress bar: "50% · 1 of 2 to-dos done · 42 sec · 2 helpers working". */
 export function bandLabel(r: StageRun, now: number, p: number, ticking: boolean): string {
   const done = r.tasks.filter(task => task.status === 'completed').length
   const running = r.agents.filter(a => a.status === 'running').length
   return [
     `${Math.round(p * 100)}%`,
-    r.tasks.length ? `${done}/${r.tasks.length} tasks` : '',
-    r.isWorking && ticking ? `${Math.max(0, Math.round((now - r.turnStartedAt) / 1000))}s` : '',
-    running ? `${running} agent${running === 1 ? '' : 's'}` : '',
-    r.mainActivity !== 'idle' ? r.mainActivity : '',
+    r.tasks.length ? `${done} of ${r.tasks.length} to-dos done` : '',
+    r.isWorking && ticking ? `${Math.max(0, Math.round((now - r.turnStartedAt) / 1000))} sec` : '',
+    running ? `${running} helper${running === 1 ? '' : 's'} working` : '',
   ].filter(Boolean).join(' · ')
 }
 
@@ -123,5 +127,5 @@ export function bandLabel(r: StageRun, now: number, p: number, ticking: boolean)
  * (a timestamp, a hidden count) needs no redraw.
  */
 export function visibleSig(r: StageRun, now: number, p: number, theme: Theme): string {
-  return JSON.stringify([buildCards(r, now, false, theme), bandLabel(r, now, p, false)])
+  return JSON.stringify([buildCards(r, now, false, theme, Math.round(p * 100) / 100), bandLabel(r, now, p, false)])
 }

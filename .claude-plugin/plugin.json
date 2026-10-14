@@ -1,7 +1,7 @@
 {
   "name": "agent-office-cats",
-  "version": "0.7.0",
-  "description": "Agents Office with office cats: a card per agent with an animated pixel cat (or robot, or spacefarer) for its role (Team Lead, Planner, Coder, Tester, Reviewer, Researcher, Designer), plus a progress bar above the prompt",
+  "version": "0.8.0",
+  "description": "Cat Office: a thin row per agent with an animated pixel cat (or robot, or spacefarer) for its role, what it is doing and its own little bar, under a pixel-office header, plus a progress bar above the prompt",
   "author": {
     "name": "Jitapa Porsom"
   },
@@ -30,16 +30,6 @@
         "space-crew"
       ]
     },
-    "robotSize": {
-      "type": "string",
-      "title": "Figure size in the terminal",
-      "description": "bust: head and speech bubble (28 x 9 cells). full: the whole figure (32 x 16 cells). The desktop always shows the whole figure.",
-      "default": "bust",
-      "options": [
-        "bust",
-        "full"
-      ]
-    },
     "backdrop": {
       "type": "string",
       "title": "Figure backdrop in the terminal",
@@ -59,7 +49,7 @@
     "autoOpenPane": {
       "type": "boolean",
       "title": "Open the pane on start",
-      "description": "Open the Agents Office by itself when the session starts (needs a wide terminal); /office always opens it",
+      "description": "Open the Cat Office by itself when the session starts (needs a wide terminal); /office always opens it",
       "default": true
     }
   }
