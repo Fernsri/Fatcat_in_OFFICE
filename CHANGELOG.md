@@ -4,6 +4,16 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 0.13.0 (2026-10-14)
+
+**A matcha café.**
+
+- The `matcha` theme is now café colors: cream paper (#F7F4E3), three matcha greens (#C9D9A6, #8DAA62, #5F7A3D), chocolate ink (#5B3A24), and a soft coral for errors (#E0705A).
+- The Cat Office header is a café sign: graph paper, a scalloped green edge, "CAT OFFICE" in chunky pixel letters, a cup of matcha latte, the summary in a rounded tag, and a heart.
+- On the desktop the cats sit on graph paper.
+- Kind words: `✓ Purr-fect! All done`, `✗ Oops! Hit an error … Take a sip and try again`, `✗ Oops, error (20 sec)`, `All quiet · nap time`.
+- Animated figures leave their empty pixels clear, so what is drawn under them shows through steadily.
+
 ## 0.12.0 (2026-10-14)
 
 **Tells you when it is done.**

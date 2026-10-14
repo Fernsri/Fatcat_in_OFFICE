@@ -363,7 +363,7 @@ export function spriteSvg(gridAt: (frame: number) => (string | null)[][], backdr
   // pixels identical in every frame are drawn once, under the frames
   const first = frames[0] ?? []
   const still = first.map((row, y) => row.map((c, x) => (frames.every(g => g[y]?.[x] === c) ? c : null)))
-  const moving = frames.map(g => g.map((row, y) => row.map((c, x) => (still[y]?.[x] === c ? null : c ?? backdrop))))
+  const moving = frames.map(g => g.map((row, y) => row.map((c, x) => (still[y]?.[x] === c ? null : c))))
   const dur = (FRAMES * FRAME_MS) / 1000
   const groups = moving.map((g, k) => {
     const values = Array.from({ length: FRAMES }, (_, i) => (i === k ? 'visible' : 'hidden')).join(';')

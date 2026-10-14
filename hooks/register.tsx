@@ -308,6 +308,7 @@ export const register: Register = (on, options) => {
     const cards = buildCards(r, now, e.surface === 'terminal', theme, p)
     const summary = officeSummary(cards)
     const paper = catPaper()
+    const lines = paper ? hex(mix(theme.paper, theme.barTo, 0.18)) : undefined // the cats sit on graph paper
 
     if (e.surface === 'terminal') {
       // Each row: the small figure, then the title, the status and what it is
@@ -378,7 +379,7 @@ export const register: Register = (on, options) => {
                 height={52}
               />
               <Svg
-                source={moving ? figureSvg(skin, card.robot.role, card.robot.pose, paper) : figureStillSvg(skin, card.robot.role, card.robot.pose, paper)}
+                source={moving ? figureSvg(skin, card.robot.role, card.robot.pose, paper, lines) : figureStillSvg(skin, card.robot.role, card.robot.pose, paper, lines)}
                 alt={`${figureName(skin, card.robot.role)}, ${POSE_WORDS[card.robot.pose]}`}
                 width={52}
                 height={52}
@@ -440,7 +441,7 @@ export const register: Register = (on, options) => {
     }
 
     const { Box, Text, Svg } = $.ui.resolve(e)
-    const label = cheering && !isLive(r) ? 'All done!' : bandLabel(r, now, p, false)
+    const label = cheering && !isLive(r) ? 'Purr-fect! All done' : bandLabel(r, now, p, false)
     // Fill the row beside the label: the desktop app lays out about 8px per cell.
     const width = clamp((e.props.bodyColumns - label.length - 3) * 8, 120, 720)
     return (

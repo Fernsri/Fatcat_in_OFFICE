@@ -86,7 +86,7 @@ export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Th
       status: a.status === 'done'
         ? `✓ Done (${secs(a.startedAt, a.endedAt)} sec)`
         : a.status === 'failed'
-          ? `✗ Error (${secs(a.startedAt, a.endedAt)} sec)`
+          ? `✗ Oops, error (${secs(a.startedAt, a.endedAt)} sec)`
           : quiet ? `◐ Thinking${elapsed(a.startedAt)}` : `● Working${elapsed(a.startedAt)}`,
       statusColor: color,
       doing: a.status === 'running' && !quiet
@@ -106,7 +106,7 @@ export function officeSummary(cards: readonly Card[]): string {
   const done = cards.filter(c => c.key !== 'main' && c.status.startsWith('✓')).length
   const errors = cards.filter(c => c.status.startsWith('✗')).length
   const parts = [working ? `${working} working` : '', done ? `${done} done` : '', errors ? `${errors} error${errors === 1 ? '' : 's'}` : '']
-  return parts.filter(Boolean).join(' · ') || 'All quiet'
+  return parts.filter(Boolean).join(' · ') || 'All quiet · nap time'
 }
 
 /** The words beside the progress bar: "50% · 1 of 2 to-dos done · 42 sec · 2 helpers working". */

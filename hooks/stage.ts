@@ -30,9 +30,22 @@ export function figureName(skin: Skin, role: Role): string {
   return SKINS[skin].name(role)
 }
 
-/** One role and pose as a self-animating SVG, for the desktop and other remote surfaces; `backdrop` replaces the skin's own. */
-export function figureSvg(skin: Skin, role: Role, pose: Pose, backdrop?: string): string {
-  return SKINS[skin].svg(role, pose, backdrop)
+/**
+ * One role and pose as a self-animating SVG, for the desktop and other remote
+ * surfaces; `backdrop` replaces the skin's own, and `paperLines`, a color,
+ * rules it like graph paper.
+ */
+export function figureSvg(skin: Skin, role: Role, pose: Pose, backdrop?: string, paperLines?: string): string {
+  return ruled(SKINS[skin].svg(role, pose, backdrop), paperLines)
+}
+
+/** A 32 × 32 figure SVG with graph-paper lines over its backdrop, under the figure; as it was without a color. */
+function ruled(svg: string, lines?: string): string {
+  if (!lines) return svg
+  let d = ''
+  for (let k = 4; k < 32; k += 4) d += `M${k} 0V32M0 ${k}H32`
+  const at = svg.indexOf('/>', svg.indexOf('<rect')) + 2
+  return svg.slice(0, at) + `<path d="${d}" stroke="${lines}" stroke-width="0.6" fill="none"/>` + svg.slice(at)
 }
 
 /**
@@ -40,8 +53,8 @@ export function figureSvg(skin: Skin, role: Role, pose: Pose, backdrop?: string)
  * a plain image, it stays put when the pane redraws, where an animated drawing
  * restarts; used for figures that are done, failed or idle.
  */
-export function figureStillSvg(skin: Skin, role: Role, pose: Pose, backdrop = SKINS[skin].backdrop): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges"><rect width="32" height="32" fill="${backdrop}"/>${gridPaths(SKINS[skin].grid(role, pose, 0))}</svg>`
+export function figureStillSvg(skin: Skin, role: Role, pose: Pose, backdrop = SKINS[skin].backdrop, paperLines?: string): string {
+  return ruled(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges"><rect width="32" height="32" fill="${backdrop}"/>${gridPaths(SKINS[skin].grid(role, pose, 0))}</svg>`, paperLines)
 }
 
 /** A sprite grid as SVG paths, one per color, each run of a row one rectangle; empty cells left out. */
@@ -78,7 +91,7 @@ export const THEMES = {
   neon: { main: 0x8b5cf6, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0x8b5cf6, barTo: 0x22d3ee, barEmpty: 0x3f3f46, paper: 0xfbf3ee, ink: 0x2a2238 },
   ocean: { main: 0x0ea5e9, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0x0369a1, barTo: 0x2dd4bf, barEmpty: 0x334155, paper: 0xfbf3ee, ink: 0x2a2238 },
   sunset: { main: 0xdc2626, done: 0x5ba53c, failed: 0xe5534b, barFrom: 0xf43f5e, barTo: 0xfacc15, barEmpty: 0x44403c, paper: 0xfbf3ee, ink: 0x2a2238 },
-  matcha: { main: 0x5e9b68, done: 0x5e9b68, failed: 0xe5534b, barFrom: 0xa0c18c, barTo: 0x5e9b68, barEmpty: 0x3d5039, paper: 0xecefd6, ink: 0x3d5039 },
+  matcha: { main: 0x8daa62, done: 0x8daa62, failed: 0xe0705a, barFrom: 0xc9d9a6, barTo: 0x8daa62, barEmpty: 0x5f7a3d, paper: 0xf7f4e3, ink: 0x5b3a24 },
   mono: { main: 0x9ca3af, done: 0xa3a3a3, failed: 0xd4d4d4, barFrom: 0x737373, barTo: 0xfafafa, barEmpty: 0x2e2e2e, paper: 0xf2f2f2, ink: 0x2e2e2e },
 } satisfies Record<string, Theme>
 
@@ -271,30 +284,91 @@ export function rowBarSvg(p: number | null, width: number, color: string, track 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}">${groove}${body}</svg>`
 }
 
+/** A chunky 5 × 7 pixel face for the header's title, the letters it needs. */
+const PIXEL_FONT: Record<string, string[]> = {
+  A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  C: ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'],
+  E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
+  F: ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
+  I: ['.###.', '..#..', '..#..', '..#..', '..#..', '..#..', '.###.'],
+  O: ['.###.', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
+  T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
+  ' ': ['...', '...', '...', '...', '...', '...', '...'],
+}
+
+/** `text` in the pixel face as SVG rects, each pixel `scale` px, with a soft shadow down and right. */
+function pixelText(text: string, x: number, y: number, scale: number, color: string, shadow: string): string {
+  let pen = x
+  let face = ''
+  let under = ''
+  for (const ch of text) {
+    const glyph = PIXEL_FONT[ch] ?? PIXEL_FONT[' '] ?? []
+    glyph.forEach((row, gy) => [...row].forEach((on, gx) => {
+      if (on !== '#') return
+      const px = pen + gx * scale, py = y + gy * scale
+      face += `<rect x="${px}" y="${py}" width="${scale}" height="${scale}"/>`
+      under += `<rect x="${px + scale / 2}" y="${py + scale / 2}" width="${scale}" height="${scale}"/>`
+    }))
+    pen += ((glyph[0]?.length ?? 3) + 1) * scale
+  }
+  return `<g fill="${shadow}">${under}</g><g fill="${color}">${face}</g>`
+}
+
+/** Columns of the pixel face `text` takes, at scale 1. */
+const pixelWidth = (text: string) => [...text].reduce((w, ch) => w + (PIXEL_FONT[ch]?.[0]?.length ?? 3) + 1, 0)
+
+/** A cup of matcha latte, a heart in its foam. */
+const CUP = [
+  'GGGGGGGG..',
+  'GGGHGHGG..',
+  'WGGGHGGGHH',
+  'WWWWWWWW.H',
+  'WWWWWWWWHH',
+  '.WWWWWW...',
+  '..WWWW....',
+]
+
 /**
- * The pane's header on the desktop: a little pixel office (two windows, a
- * plant, a clock) with the title and a summary on the wall.
+ * The pane's header on the desktop, a little matcha-café sign: graph paper,
+ * a scalloped green edge on top, "CAT OFFICE" in chunky pixel letters in the
+ * theme's ink, a cup of matcha, and the summary in a rounded tag.
  */
 export function bannerSvg(width: number, summary: string, theme: Theme): string {
-  const H = 56
+  const H = 64
   const hx = (n: number) => '#' + n.toString(16).padStart(6, '0')
-  const INK = hx(theme.ink)
+  const paper = hx(theme.paper), ink = hx(theme.ink)
+  const light = hx(theme.barFrom), leaf = hx(theme.barTo)
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const window = (x: number) => `<rect x="${x}" y="10" width="44" height="30" fill="#BFE3F5" stroke="${INK}" stroke-width="3"/>`
-    + `<line x1="${x + 22}" y1="10" x2="${x + 22}" y2="40" stroke="${INK}" stroke-width="2"/>`
-    + `<rect x="${x + 4}" y="14" width="8" height="4" fill="#FFFFFF"/>`
-  const right = width - 24
+
+  const lines = hx(mix(theme.paper, theme.barTo, 0.16))
+  let grid = ''
+  for (let x = 8; x < width; x += 8) grid += `M${x} 0V${H}`
+  for (let y = 8; y < H; y += 8) grid += `M0 ${y}H${width}`
+  let scallops = ''
+  for (let x = 0; x < width + 12; x += 12) scallops += `<circle cx="${x + 6}" cy="4" r="6"/>`
+
+  const scale = width >= 330 ? 3 : 2
+  const titleX = 60
+  const titleY = 14
+  const tagY = titleY + 7 * scale + 6
+  const tagW = Math.min(width - titleX - 8, Math.round(summary.length * 6.6) + 20)
+  const cup = gridPaths(pixelArt(CUP, { G: leaf, H: '#FFFFFF', W: '#FFFFFF' }, ink))
+  const steam = `<g fill="${hx(mix(theme.paper, theme.ink, 0.25))}"><rect x="23" y="12" width="3" height="3"/><rect x="26" y="9" width="3" height="3"/><rect x="32" y="12" width="3" height="3"/><rect x="35" y="9" width="3" height="3"/></g>`
+  const heart = width >= titleX + pixelWidth('CAT OFFICE') * scale + 40
+    ? `<g transform="translate(${width - 26} ${titleY + 2}) scale(2)">${gridPaths(pixelArt(HEART, { X: '#F27B93' }, ink))}</g>`
+    : ''
+
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}" shape-rendering="crispEdges">`
-    + `<rect width="${width}" height="${H}" fill="${hx(theme.paper)}"/>`
-    + `<rect y="${H - 6}" width="${width}" height="6" fill="${hx(mix(theme.paper, theme.ink, 0.12))}"/><rect y="${H - 6}" width="${width}" height="2" fill="${INK}"/>`
-    + window(12) + window(64)
-    + `<text x="124" y="27" font-family="system-ui, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="${INK}">Cat Office</text>`
-    + `<text x="124" y="44" font-family="system-ui, 'Segoe UI', sans-serif" font-size="12" fill="${hx(mix(theme.ink, theme.paper, 0.35))}">${esc(summary)}</text>`
-    + (width >= 300
-      ? `<circle cx="${right - 34}" cy="20" r="9" fill="#FFFFFF" stroke="${INK}" stroke-width="2"/><line x1="${right - 34}" y1="20" x2="${right - 34}" y2="14" stroke="${INK}" stroke-width="2"/><line x1="${right - 34}" y1="20" x2="${right - 30}" y2="20" stroke="${INK}" stroke-width="2"/>`
-        + `<rect x="${right - 4}" y="${H - 18}" width="12" height="12" fill="#C9844F" stroke="${INK}" stroke-width="2"/>`
-        + `<rect x="${right - 2}" y="${H - 30}" width="8" height="12" fill="#3AA37A" stroke="${INK}" stroke-width="2"/><rect x="${right - 8}" y="${H - 26}" width="6" height="6" fill="#3AA37A" stroke="${INK}" stroke-width="2"/><rect x="${right + 6}" y="${H - 28}" width="6" height="6" fill="#3AA37A" stroke="${INK}" stroke-width="2"/>`
-      : '')
+    + `<title>Cat Office: ${esc(summary)}</title>`
+    + `<rect width="${width}" height="${H}" fill="${paper}"/>`
+    + `<path d="${grid}" stroke="${lines}" stroke-width="1" fill="none"/>`
+    + `<rect width="${width}" height="4" fill="${leaf}"/><g fill="${leaf}">${scallops}</g>`
+    + `<rect y="${H - 4}" width="${width}" height="4" fill="${leaf}"/>`
+    + steam + `<g transform="translate(14 16) scale(3)">${cup}</g>`
+    + pixelText('CAT OFFICE', titleX, titleY, scale, ink, light)
+    + `<rect x="${titleX}" y="${tagY}" width="${tagW}" height="18" rx="9" fill="${paper}" stroke="${leaf}" stroke-width="2" shape-rendering="auto"/>`
+    + `<text x="${titleX + 10}" y="${tagY + 13}" font-family="system-ui, 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="${ink}" shape-rendering="auto">${esc(summary)}</text>`
+    + heart
     + '</svg>'
 }
 
@@ -314,15 +388,15 @@ const BOUNCE = [0, 1, 2, 2, 2, 1, 0, 0]
 const HEART = ['.X.X.', 'XXXXX', '.XXX.', '..X..']
 const SPRITE_INK = '#2A2238'
 
-/** Rows of characters as a sprite grid in `colors`, outlined in ink for the sticker look. */
-function pixelArt(rows: readonly string[], colors: Record<string, string>): Grid {
+/** Rows of characters as a sprite grid in `colors`, outlined in `outline` for the sticker look. */
+function pixelArt(rows: readonly string[], colors: Record<string, string>, outline = SPRITE_INK): Grid {
   const h = rows.length + 2
   const w = (rows[0]?.length ?? 0) + 2
   const fill = (x: number, y: number) => colors[rows[y - 1]?.[x - 1] ?? '.'] ?? null
   return Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => {
     const c = fill(x, y)
     if (c) return c
-    return fill(x - 1, y) || fill(x + 1, y) || fill(x, y - 1) || fill(x, y + 1) ? SPRITE_INK : null
+    return fill(x - 1, y) || fill(x + 1, y) || fill(x, y - 1) || fill(x, y + 1) ? outline : null
   }))
 }
 

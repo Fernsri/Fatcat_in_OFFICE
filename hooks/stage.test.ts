@@ -259,8 +259,8 @@ test('rows speak plain words, and each has its own bar', async () => {
   expect(cards[2]?.status).toBe('✓ Done (1 sec)')
   expect(cards[2]?.bar).toBe(1)
   const failed = buildCards({ ...RUN, agents: [{ ...RUN.agents[1]!, status: 'failed' }] }, 10_000, false, THEMES.neon, 0.5)
-  expect(failed[1]?.status).toBe('✗ Error (1 sec)')
-  expect(failed[1]?.barColor).toBe('#e5534b')
+  expect(failed[1]?.status).toBe('✗ Oops, error (1 sec)')
+  expect(failed[1]?.barColor).toBe('#e5534b') // neon's red
   expect(buildCards({ ...RUN, isWorking: false, agents: [] }, 10_000, false, THEMES.neon, 1)[0]?.status).toBe('○ Waiting for you')
   expect(officeSummary(cards)).toBe('2 working · 1 done')
   expect(officeSummary(failed)).toBe('1 working · 1 error')
@@ -407,7 +407,7 @@ test('after an answer the desktop band cheers a moment, then goes; the terminal 
     props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: SCROLL, view: {} },
   })
   let band = await mount('desktop')
-  expect(await band.find({ type: 'Text', text: /All done/ })).toBeDefined()
+  expect(await band.find({ type: 'Text', text: /Purr-fect! All done/ })).toBeDefined()
   await band.unmount()
   band = await mount('terminal')
   expect(await band.find({ type: 'Text', text: /All done|%/ })).toBeUndefined()
@@ -422,18 +422,20 @@ test('the matcha greens are the default theme', async () => {
   expect(themeNamed('')).toBe(THEMES.matcha)
   expect(themeNamed('neon')).toBe(THEMES.neon)
   const svg = bandCatSvg(0.5, 400, THEMES.matcha)
-  expect(svg).toContain('stop-color="#a0c18c"')
-  expect(svg).toContain('stop-color="#5e9b68"')
+  expect(svg).toContain('stop-color="#c9d9a6"')
+  expect(svg).toContain('stop-color="#8daa62"')
 })
 
 test('the pane takes the theme: the header wall, the cats\' backdrop, the row bars', async () => {
   const banner = bannerSvg(400, 'All quiet', THEMES.matcha)
-  expect(banner).toContain('fill="#ecefd6"') // the cream-green wall
-  expect(banner).toContain('fill="#3d5039"') // forest ink
+  expect(banner).toContain('fill="#f7f4e3"') // cream graph paper
+  expect(banner).toContain('fill="#5b3a24"') // chocolate ink
+  expect(figureSvg('office-cats', 'coder', 'walk', '#f7f4e3', '#e0e2c4')).toContain('stroke="#e0e2c4"') // the cats on graph paper
+  expect(figureStillSvg('office-cats', 'coder', 'idle', '#f7f4e3')).not.toContain('<path d="M4 0')
   expect(figureStillSvg('office-cats', 'coder', 'idle', '#ecefd6')).toContain('fill="#ecefd6"')
   expect(figureStillSvg('office-cats', 'coder', 'idle')).toContain('fill="#FBF3EE"') // its own backdrop by default
   const cards = buildCards(RUN, 10_000, false, THEMES.matcha, 0.5)
-  expect(cards[0]?.barColor).toBe('#5e9b68')
-  expect(cards[1]?.statusColor).toBe('#5e9b68') // a helper at work: the theme's green, not its role color
+  expect(cards[0]?.barColor).toBe('#8daa62')
+  expect(cards[1]?.statusColor).toBe('#8daa62') // a helper at work: the theme's green, not its role color
   expect(rowBarSvg(null, 90, '#5e9b68', '#e2e6cc')).toContain('fill="#e2e6cc"')
 })

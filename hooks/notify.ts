@@ -1,5 +1,6 @@
 // What to tell the person when work ends: a toast in the app, and a desktop
-// notification when they have likely looked away. Pure, no `$`.
+// notification when they have likely looked away. Kind words, even for an
+// error: the cats are on your side. Pure, no `$`.
 
 import type { StageRun } from '../types'
 
@@ -34,13 +35,14 @@ export function turnAlert(run: StageRun, reason: Ending, durationMs: number, opt
   if (reason !== 'answer' && reason !== 'error') return {}
   const took = duration(durationMs)
   const helpers = run.agents.filter(a => a.status === 'done').length
-  const word = reason === 'answer' ? 'All done' : 'Stopped by an error'
+  const word = reason === 'answer' ? 'Purr-fect! All done' : 'Oops! Hit an error'
+  const cheer = reason === 'answer' ? '' : '. Take a sip and try again'
   const alert: Alert = {}
   if (options.toasts) {
     const finished = reason === 'answer' && helpers ? ` · ${helpers} helper${helpers === 1 ? '' : 's'} finished` : ''
-    alert.toast = `${reason === 'answer' ? '✓' : '✗'} ${word} · ${took}${finished}`
+    alert.toast = `${reason === 'answer' ? '✓' : '✗'} ${word} · ${took}${finished}${cheer}`
   }
-  if (options.notifyAfterSec > 0 && durationMs >= options.notifyAfterSec * 1000) alert.notify = `${word} (${took})`
+  if (options.notifyAfterSec > 0 && durationMs >= options.notifyAfterSec * 1000) alert.notify = `${word} (${took})${cheer}`
   return alert
 }
 
@@ -50,5 +52,5 @@ export function helperAlert(run: StageRun, agentId: string, reason: Ending, opti
   const at = run.agents.findIndex(a => a.id === agentId)
   const agent = run.agents[at]
   if (!agent) return {}
-  return { toast: `✗ Task ${at + 1} had an error: ${agent.label}` }
+  return { toast: `✗ Oops! Task ${at + 1} hit an error: ${agent.label}` }
 }

@@ -27,21 +27,21 @@ test('durations read as plain minutes and seconds', async () => {
 
 test('an answer: a toast always, a desktop notification only after a long wait', async () => {
   expect(turnAlert(RUN, 'answer', 134_000, ON)).toEqual({
-    toast: '✓ All done · 2 min 14 sec · 2 helpers finished',
-    notify: 'All done (2 min 14 sec)',
+    toast: '✓ Purr-fect! All done · 2 min 14 sec · 2 helpers finished',
+    notify: 'Purr-fect! All done (2 min 14 sec)',
   })
-  expect(turnAlert({ ...RUN, agents: [] }, 'answer', 12_000, ON)).toEqual({ toast: '✓ All done · 12 sec' })
+  expect(turnAlert({ ...RUN, agents: [] }, 'answer', 12_000, ON)).toEqual({ toast: '✓ Purr-fect! All done · 12 sec' })
   expect(turnAlert(RUN, 'answer', 134_000, { toasts: false, notifyAfterSec: 0 })).toEqual({})
 })
 
 test('an error says so; stopping it yourself or a refusal says nothing', async () => {
-  expect(turnAlert(RUN, 'error', 45_000, ON)).toEqual({ toast: '✗ Stopped by an error · 45 sec', notify: 'Stopped by an error (45 sec)' })
+  expect(turnAlert(RUN, 'error', 45_000, ON)).toEqual({ toast: '✗ Oops! Hit an error · 45 sec. Take a sip and try again', notify: 'Oops! Hit an error (45 sec). Take a sip and try again' })
   expect(turnAlert(RUN, 'aborted', 45_000, ON)).toEqual({})
   expect(turnAlert(RUN, 'refusal', 45_000, ON)).toEqual({})
 })
 
 test('a helper with an error gets a toast; a helper that finishes gets none', async () => {
-  expect(helperAlert(RUN, 'a2', 'error', ON)).toEqual({ toast: '✗ Task 2 had an error: test the build' })
+  expect(helperAlert(RUN, 'a2', 'error', ON)).toEqual({ toast: '✗ Oops! Task 2 hit an error: test the build' })
   expect(helperAlert(RUN, 'a1', 'answer', ON)).toEqual({})
   expect(helperAlert(RUN, 'a2', 'error', { toasts: false, notifyAfterSec: 30 })).toEqual({})
   expect(helperAlert(RUN, 'nobody', 'error', ON)).toEqual({})
@@ -57,6 +57,6 @@ test('a long answer toasts and notifies through the engine', async ($, on) => {
   on('ui.notify', async (_, e) => { notes.push(e.text); return { value: { isSent: true, channel: 'terminal_bell' } } as never })
   await $.turn.start({ text: 'make it purr', turnId: 't1' })
   await $.turn.complete({ answer: 'done', durationMs: 45_000, isAborted: false, turnId: 't1', reason: 'answer' })
-  expect(toasts).toEqual(['✓ All done · 45 sec'])
-  expect(notes).toEqual(['All done (45 sec)'])
+  expect(toasts).toEqual(['✓ Purr-fect! All done · 45 sec'])
+  expect(notes).toEqual(['Purr-fect! All done (45 sec)'])
 })
