@@ -327,8 +327,8 @@ test('a spawned subagent and the plan show on the pane and the band', async ($, 
       props: { title: 'Cat Office', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: SCROLL, view: {} },
     })
     if (surface === 'terminal') expect(await pane.find({ type: 'Text', text: /Cat Office/ })).toBeDefined()
-    // the desktop's header is the pixel office; then each row: its stripe, its figure, its bar
-    else expect(await pane.findAll({ type: 'Svg' })).toHaveLength(1 + 2 * 3)
+    // the desktop's header is the pixel office; then each row: its figure and its bar, in a rounded card
+    else expect(await pane.findAll({ type: 'Svg' })).toHaveLength(1 + 2 * 2)
     expect(await pane.find({ type: 'Text', text: /Task 1: review the auth change/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /look around/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /Reviewer/ })).toBeDefined()

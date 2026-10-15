@@ -419,11 +419,11 @@ export function bannerSvg(width: number, summary: string, theme: Theme): string 
     ? `<g transform="translate(${width - 26} ${titleY + 2}) scale(2)">${gridPaths(pixelArt(HEART, { X: '#F27B93' }, ink))}</g>`
     : ''
   // the seven cats' faces in a row on the right, when there is room; else the heart
-  const room = width - (titleX + pixelWidth('CAT OFFICE') * scale + 16)
+  const room = width - (titleX + pixelWidth('CAT OFFICE') * scale + 24)
   const HEAD_W = 30
   const fits = Math.min(7, Math.floor(room / HEAD_W))
   const heads = fits >= 3
-    ? HEAD_ROLES.slice(0, fits).map((role, i) => `<g transform="translate(${width - (fits - i) * HEAD_W - 6} ${H - 28})">${gridPaths(catHead(role))}</g>`).join('')
+    ? HEAD_ROLES.slice(0, fits).map((role, i) => `<g transform="translate(${width - (fits - i) * HEAD_W - 14} ${H - 28})">${gridPaths(catHead(role))}</g>`).join('')
     : heart
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${H}" width="${width}" height="${H}" shape-rendering="crispEdges">`

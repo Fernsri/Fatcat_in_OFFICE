@@ -364,7 +364,8 @@ export const register: Register = (on, options) => {
     // a done, failed or idle figure is a still picture, which a redraw leaves
     // in place, so near the end of a run almost nothing can flash.
     const { Box, Text, Svg } = $.ui.resolve(e)
-    const width = clamp(e.props.bodyColumns * 8, 240, 720)
+    // a little narrower than the pane, so nothing on the header's right edge is cut off
+    const width = clamp((e.props.bodyColumns - 4) * 7, 240, 680)
     return (
       <Box flexDirection="column" gap={1}>
         <Svg source={bannerSvg(width, summary, theme)} alt={`Cat Office: ${summary}`} width={width} height={56} />
@@ -372,13 +373,7 @@ export const register: Register = (on, options) => {
           const role = ROLES[card.robot.role]
           const moving = card.live && animated(card.robot.pose)
           return (
-            <Box key={card.key} flexDirection="row" alignItems="center" gap={1}>
-              <Svg
-                source={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 100" width="4" height="100"><rect width="4" height="100" rx="2" fill="${card.live ? hex(theme.main) : '#CFC8C2'}"/></svg>`}
-                alt={card.live ? 'at work' : 'resting'}
-                width={4}
-                height={100}
-              />
+            <Box key={card.key} flexDirection="row" alignItems="center" gap={2} borderStyle="round" borderColor={card.live ? hex(theme.main) : '#6B6B66'} paddingX={1} paddingY={1}>
               <Svg
                 source={moving ? figureSvg(skin, card.robot.role, card.robot.pose, paper, lines) : figureStillSvg(skin, card.robot.role, card.robot.pose, paper, lines)}
                 alt={`${figureName(skin, card.robot.role)}, ${POSE_WORDS[card.robot.pose]}`}
@@ -387,20 +382,14 @@ export const register: Register = (on, options) => {
                 isInteractive={moving}
               />
               <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
-                <Box flexDirection="row" gap={1}>
-                  <Box flexShrink={0}><Text bold color={role.color}>{role.label}</Text></Box>
-                  <Box flexGrow={1} flexShrink={1} minWidth={0}><Text dimColor={card.key.startsWith('role:')} wrap="truncate-end">{card.title}</Text></Box>
-                </Box>
-                <Box flexDirection="row" gap={1}>
-                  <Box flexShrink={0}><Text color={card.statusColor}>{card.status}</Text></Box>
-                  <Box flexGrow={1} flexShrink={1} minWidth={0}><Text dimColor wrap="truncate-end">{card.doing}</Text></Box>
-                </Box>
-              </Box>
-              <Box flexShrink={0}>
+                <Box flexDirection="row"><Text bold color="#1F1E1D" backgroundColor={role.color}>{` ${role.label} `}</Text></Box>
+                <Text bold dimColor={card.key.startsWith('role:')} wrap="wrap">{card.title}</Text>
+                <Text bold color={card.statusColor}>{card.status}</Text>
+                <Text dimColor wrap="wrap">{card.doing}</Text>
                 <Svg
-                  source={rowBarSvg(card.bar === null ? null : Math.round(card.bar * 100) / 100, 90, card.status.startsWith('✗') ? ['#F2A08F', hex(theme.failed)] : card.key.startsWith('role:') ? card.barColor : CAT_BAR[card.robot.role], hex(mix(theme.paper, theme.ink, 0.07)), card.robot.role)}
+                  source={rowBarSvg(card.bar === null ? null : Math.round(card.bar * 100) / 100, 200, card.status.startsWith('✗') ? ['#F2A08F', hex(theme.failed)] : card.key.startsWith('role:') ? card.barColor : CAT_BAR[card.robot.role], '#3A3A37', card.robot.role)}
                   alt={card.bar === null ? 'working' : `${Math.round(card.bar * 100)}%`}
-                  width={120}
+                  width={230}
                   height={20}
                   isInteractive={card.bar === null}
                 />

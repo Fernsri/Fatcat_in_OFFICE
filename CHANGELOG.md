@@ -4,6 +4,14 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 1.1.0 (2026-10-15)
+
+**Rounded cards, one line at a time.**
+
+- Each desktop row is a rounded card, green while the cat works, gray once it rests. Inside, beside the cat, one line under another: the role in a colored tag, the task, the status, what it is doing, and its bar with its tool.
+- The lead never shows your own prompt: it says which step of the plan it is on (`Task: …`), or `Working on your request`, or `Waiting for your next request`.
+- The header keeps its faces inside the pane instead of running off the right edge.
+
 ## 1.0.0 (2026-10-15)
 
 **Cat Office 1.0.**

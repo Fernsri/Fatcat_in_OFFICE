@@ -3,7 +3,6 @@
 // decide whether anything on screen changed at all.
 
 import type { StageRun } from '../types'
-import { cleanTask } from './activity'
 import { poseOf, roleOf } from './robots'
 import type { Pose, Role } from './robots'
 import type { Theme } from './stage'
@@ -60,12 +59,13 @@ export function buildCards(r: StageRun, now: number, ticking: boolean, theme: Th
   const secs = (from: number, to: number | null) => Math.max(0, Math.round(((to ?? now) - from) / 1000))
   const elapsed = (from: number) => (ticking ? ` · ${secs(from, null)} sec` : '')
   const mainQuiet = isQuiet(r.mainActivity, r.mainActiveAt ?? r.turnStartedAt, now)
-  const request = cleanTask(r.mainTask ?? '')
+  const current = r.tasks.find(t => t.status === 'in_progress')
   const done = hex(theme.done)
 
   const lead: Card = {
     key: 'main',
-    title: request ?? (r.isWorking ? 'Leading the team' : 'Waiting for your next request'),
+    // never the person's own words: the step of the plan it is on, or just that it is at work
+    title: !r.isWorking ? 'Waiting for your next request' : current ? `Task: ${current.title}` : 'Working on your request',
     live: r.isWorking,
     status: !r.isWorking ? '○ Waiting for you' : mainQuiet ? `◐ Thinking${elapsed(r.turnStartedAt)}` : `● Working${elapsed(r.turnStartedAt)}`,
     statusColor: r.isWorking ? hex(theme.main) : done,
