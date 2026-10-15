@@ -212,7 +212,7 @@ test('running agents get cards first', async () => {
 
 test('roles follow the agent type and description; poses follow the activity', async () => {
   expect([
-    roleOf('Explore'), roleOf('Plan'), roleOf('general-purpose'), roleOf('general-purpose', 'write unit tests'),
+    roleOf('explore'), roleOf('Plan'), roleOf('general-purpose'), roleOf('general-purpose', 'write unit tests'),
     roleOf('code-reviewer'), roleOf('general-purpose', 'design the settings screen'), roleOf('agent-sdk-verifier-ts'),
   ]).toEqual(['researcher', 'planner', 'coder', 'tester', 'reviewer', 'designer', 'tester'])
   expect([poseOf('Grep'), poseOf('thinking'), poseOf('starting'), poseOf('Grep', 'done'), poseOf('x', 'failed'), poseOf('idle')])

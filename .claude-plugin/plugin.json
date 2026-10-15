@@ -1,6 +1,6 @@
 {
   "name": "agent-office-cats",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Cat Office: a thin row per agent with an animated pixel cat (or robot, or spacefarer) for its role, what it is doing and its own little bar, under a pixel-office header, plus a progress bar above the prompt",
   "author": {
     "name": "Jitapa Porsom"

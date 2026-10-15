@@ -26,14 +26,14 @@ export const BACKDROP = '#E6DFD6'
 
 /** A subagent's role, read off its type first and its description second. */
 export function roleOf(type: string, label = ''): Role {
-  if (type === 'Explore') return 'researcher'
-  if (type === 'Plan') return 'planner'
+  if (/^explore/i.test(type)) return 'researcher'
+  if (/^plan$/i.test(type)) return 'planner'
   for (const text of [type, label]) {
     if (/test|qa\b|verif/i.test(text)) return 'tester'
     if (/review|audit|critic/i.test(text)) return 'reviewer'
     if (/design|\bui\b|\bux\b|figma|style/i.test(text)) return 'designer'
     if (/plan|architect/i.test(text)) return 'planner'
-    if (/research|explore|search|investigat|guide|docs?\b/i.test(text)) return 'researcher'
+    if (/research|explor|search|investigat|guide|docs?\b|find|look|locate|scan|survey|discover|map\b|understand|analy[sz]e/i.test(text)) return 'researcher'
   }
   return 'coder'
 }

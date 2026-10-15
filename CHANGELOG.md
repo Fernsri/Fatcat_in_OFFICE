@@ -4,6 +4,13 @@ Each version of agent-office-cats, newest first (0.6.0 and earlier are
 Saharat's agent-stage). Update with
 `claude plugin update agent-office-cats@jitapa-mods`, then `/reload-plugins`.
 
+## 1.1.2 (2026-10-15)
+
+**The Researcher cat shows up more, and a friendlier guide.**
+
+- The Researcher is matched more often: the agent type `explore` in any letter case, and job names with find, look, locate, scan, survey, discover, analyze or understand.
+- The guide has a "Call a cat" section (which words call which cat, with prompts to copy) and uses the free Mali font (SIL OFL).
+
 ## 1.1.0 (2026-10-15)
 
 **Rounded cards, one line at a time.**
