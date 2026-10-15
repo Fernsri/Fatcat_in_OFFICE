@@ -7,8 +7,9 @@ chubby office cats, a compact layout and plain, simple words.
 >
 > - **What it is:** a mod for **Claude Code** only (the terminal and the desktop app's Code tab). It does not work in the plain Claude chat.
 > - **It costs no tokens.** It only draws what Claude is already doing. Cats show up only when Claude hands a job to a helper (subagent).
-> - **A fork:** based on [Saharat's agent-stage](https://github.com/Saharatjj/agent-stage), which has no license file. Keep this repo private unless Saharat agrees to share it.
-> - **Free to use assets:** the cats come from the project owner's own sprite file; the guide uses the Mali font (SIL OFL).
+> - **Made with AI, for practice.** This is a learning project made with the help of AI. It may have rough edges, and it comes as is.
+> - **Feedback is welcome!** Found a bug, or have an idea to make the cats cuter? Open an issue on this repo or tell whoever shared it with you.
+> - **Free to use assets:** the cats come from a pixel sprite file made for this project; the guide uses the Mali font (SIL OFL).
 > - **Install and update:** see the [illustrated guide](docs/guide.html) (download it and open it in a browser).
 
 ![What the pane looks like: seven cats in different states, the progress bar and the toasts](docs/pane-demo.png)
