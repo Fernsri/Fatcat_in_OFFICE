@@ -406,7 +406,10 @@ export function bannerSvg(width: number, summary: string, theme: Theme): string 
   for (let x = 8; x < width; x += 8) grid += `M${x} 0V${H}`
   for (let y = 8; y < H; y += 8) grid += `M0 ${y}H${width}`
   let scallops = ''
-  for (let x = 0; x < width + 12; x += 12) scallops += `<circle cx="${x + 6}" cy="4" r="6"/>`
+  // as many scallops as fit, spread so the last one ends exactly at the right edge
+  const bumps = Math.max(1, Math.round(width / 12))
+  const step = width / bumps
+  for (let k = 0; k < bumps; k++) scallops += `<circle cx="${(k + 0.5) * step}" cy="4" r="${step / 2}"/>`
 
   const scale = width >= 330 ? 3 : 2
   const titleX = 60

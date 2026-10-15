@@ -364,8 +364,7 @@ export const register: Register = (on, options) => {
     // a done, failed or idle figure is a still picture, which a redraw leaves
     // in place, so near the end of a run almost nothing can flash.
     const { Box, Text, Svg } = $.ui.resolve(e)
-    // a little narrower than the pane, so nothing on the header's right edge is cut off
-    const width = clamp((e.props.bodyColumns - 4) * 7, 240, 680)
+    const width = clamp(e.props.bodyColumns * 8, 240, 720)
     return (
       <Box flexDirection="column" gap={1}>
         <Svg source={bannerSvg(width, summary, theme)} alt={`Cat Office: ${summary}`} width={width} height={56} />
